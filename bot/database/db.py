@@ -1,67 +1,91 @@
 import aiosqlite
+import os
 
-DB_PATH = "bot.db"
+# Define a directory for the database
+DB_DIR = "data"  # Or any other directory you want to use
+DB_PATH = os.path.join(DB_DIR, "bot.db")  # Combine directory with filename
+
+# Ensure the directory exists
+if not os.path.exists(DB_DIR):
+    os.makedirs(DB_DIR)
 
 async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Foydalanuvchilar jadvali
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            telegram_id INTEGER UNIQUE,
-            is_member BOOLEAN DEFAULT 0
-        )""")
-        
-        # Kanallar va guruhlar jadvali
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS channels (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            link TEXT
-        )""")
-        
-        # Videolar jadvali
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS videos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_id TEXT,
-            likes INTEGER DEFAULT 0,
-            dislikes INTEGER DEFAULT 0
-        )""")
-        
-        # Foydalanuvchi ovozlari jadvali
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS user_likes (
-            user_id INTEGER,
-            video_id INTEGER,
-            UNIQUE(user_id, video_id)
-        )""")
-        
-        await db.commit()
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            # Foydalanuvchilar jadvali
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER UNIQUE,
+                is_member BOOLEAN DEFAULT 0
+            )""")
+            
+            # Kanallar va guruhlar jadvali
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                link TEXT
+            )""")
+            
+            # Videolar jadvali
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_id TEXT,
+                likes INTEGER DEFAULT 0,
+                dislikes INTEGER DEFAULT 0
+            )""")
+            
+            # Foydalanuvchi ovozlari jadvali
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS user_likes (
+                user_id INTEGER,
+                video_id INTEGER,
+                UNIQUE(user_id, video_id)
+            )""")
+            
+            await db.commit()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 
 async def add_channel(name, link):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("INSERT INTO channels (name, link) VALUES (?, ?)", (name, link))
-        await db.commit()
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO channels (name, link) VALUES (?, ?)", (name, link))
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding channel: {e}")
 
 async def get_channels():
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT name, link FROM channels")
-        return await cursor.fetchall()
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT name, link FROM channels")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting channels: {e}")
+        return []
 
 async def add_video(file_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("INSERT INTO videos (file_id) VALUES (?)", (file_id,))
-        await db.commit()
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO videos (file_id) VALUES (?)", (file_id,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding video: {e}")
 
 async def get_videos():
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT id, file_id, likes, dislikes FROM videos")
-        return await cursor.fetchall()
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT id, file_id, likes, dislikes FROM videos")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting videos: {e}")
+        return []
 
 async def like_video(user_id, video_id, like=True):
-    async with aiosqlite.connect(DB_PATH) as db:
-        try:
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
             # Checking if the user has already voted
             cursor = await db.execute("SELECT 1 FROM user_likes WHERE user_id = ? AND video_id = ?", (user_id, video_id))
             if await cursor.fetchone():
@@ -74,5 +98,14 @@ async def like_video(user_id, video_id, like=True):
                 await db.execute("UPDATE videos SET dislikes = dislikes + 1 WHERE id = ?", (video_id,))
             await db.commit()
             return True
-        except aiosqlite.IntegrityError:
-            return False
+    except aiosqlite.IntegrityError:
+        print(f"IntegrityError: User {user_id} has already voted for video {video_id}.")
+        return False
+    except Exception as e:
+        print(f"Error liking video: {e}")
+        return False
+
+# database/db.py
+async def get_video_votes(video_id: int):
+    result = await db.fetch_one("SELECT likes, dislikes FROM videos WHERE id = :video_id", values={"video_id": video_id})
+    return result

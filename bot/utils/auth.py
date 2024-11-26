@@ -1,4 +1,5 @@
-from aiogram.types import Message
+# utils/auth.py
 
-def is_admin(message: Message, admins: list) -> bool:
-    return message.from_user.id in admins
+def is_admin(user_id: int) -> bool:
+    ADMINS = [1421622919]  # Adminlar Telegram IDlari ro'yxati
+    return user_id in ADMINS
