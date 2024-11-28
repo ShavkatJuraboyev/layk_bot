@@ -1,6 +1,6 @@
 from aiogram import types
 from aiogram import Router, Bot, Dispatcher
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from database.db import add_channel, add_video, get_video_votes, get_videos
 from utils.auth import is_admin
 
@@ -21,16 +21,26 @@ async def add_channel_handler(message: types.Message, bot: Bot):
     await message.reply("✅ Kanal qo'shildi!")
 
 # /add_video komandasi handleri
-async def add_video_handler(message: types.Message, bot: Bot):
-    if not is_admin(message.from_user.id):  # Admin tekshiruvi
+async def add_video_handler(message: types.Message, command: CommandObject, bot: Bot):
+    # Adminni tekshirish
+    if not is_admin(message.from_user.id):  
         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
         return
 
+    # Komanda argumentlarini olish
+    video_name = command.args  # /add_video <video nomi>
+
+    if not video_name:
+        await message.reply("❌ Videoga nom kiriting: /add_video <nom>")
+        return
+
     if message.video:
-        await add_video(message.video.file_id)
-        await message.reply("✅ Video qo'shildi!")
+        # Video va nomni bazaga qo'shish
+        await add_video(file_id=message.video.file_id, name=video_name)
+        await message.reply("✅ Video va nom qo'shildi!")
     else:
-        await message.reply("❌ Video yuboring!")
+        await message.reply("❌ Iltimos, video yuboring!")
+
 
 async def view_videos_handler(message: types.Message, bot: Bot):
     if not is_admin(message.from_user.id):  # Admin tekshiruvi
@@ -42,15 +52,18 @@ async def view_videos_handler(message: types.Message, bot: Bot):
     if not videos:
         await message.reply("❌ Hech qanday video mavjud emas.")
         return
-
     # Har bir video uchun ovozlar sonini olish
-    for video_id, file_id, likes, dislikes in videos:
-        votes = await get_video_votes(video_id)
-        # Video va uning ovozlari haqida ma'lumot yuborish
-        text = f"Video ID: {video_id}\n"
-        text += f"Likes: {votes['likes']}, Dislikes: {votes['dislikes']}"
-        
-        await message.reply(text)
+    for video in videos:
+        if len(video) == 5:
+            video_id, file_id, name, likes, dislikes = video
+            votes = await get_video_votes(video_id)
+            # Video va uning ovozlari haqida ma'lumot yuborish
+            text = f"Video ID: {video_id}\n"
+            text += f"Video nomi: {name}\n"
+            text += f"Likes: {votes['likes']}, Dislikes: {votes['dislikes']}"
+            await message.reply(text)
+        else:
+            print(f"Noto'g'ri format: {video}")
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):

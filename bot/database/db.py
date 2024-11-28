@@ -33,6 +33,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS videos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_id TEXT,
+                name TEXT,
                 likes INTEGER DEFAULT 0,
                 dislikes INTEGER DEFAULT 0
             )""")
@@ -48,6 +49,8 @@ async def init_db():
             await db.commit()
     except Exception as e:
         print(f"Error initializing database: {e}")
+
+
 
 async def add_channel(name, link):
     try:
@@ -66,10 +69,10 @@ async def get_channels():
         print(f"Error getting channels: {e}")
         return []
 
-async def add_video(file_id):
+async def add_video(file_id, name):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("INSERT INTO videos (file_id) VALUES (?)", (file_id,))
+            await db.execute("INSERT INTO videos (file_id, name) VALUES (?, ?)", (file_id, name))
             await db.commit()
     except Exception as e:
         print(f"Error adding video: {e}")
@@ -77,7 +80,7 @@ async def add_video(file_id):
 async def get_videos():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT id, file_id, likes, dislikes FROM videos")
+            cursor = await db.execute("SELECT id, file_id, name, likes, dislikes FROM videos")
             return await cursor.fetchall()
     except Exception as e:
         print(f"Error getting videos: {e}")
@@ -107,5 +110,13 @@ async def like_video(user_id, video_id, like=True):
 
 # database/db.py
 async def get_video_votes(video_id: int):
-    result = await db.fetch_one("SELECT likes, dislikes FROM videos WHERE id = :video_id", values={"video_id": video_id})
-    return result
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT likes, dislikes FROM videos WHERE id = :video_id", {"video_id": video_id})
+            result = await cursor.fetchone()
+            print(result)  # Natijani tekshirish
+            if result:
+                return {"likes": result[0], "dislikes": result[1]}
+            return {"likes": 0, "dislikes": 0}
+    except Exception as e:
+        print(f"Error getting votes for video_id={video_id}: {e}")
