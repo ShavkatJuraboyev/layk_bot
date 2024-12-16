@@ -33,7 +33,6 @@ async def add_video_handler(message: types.Message, command: CommandObject, bot:
     if not video_name:
         await message.reply("❌ Videoga nom kiriting: /add_video <nom>")
         return
-
     if message.video:
         # Video va nomni bazaga qo'shish
         await add_video(file_id=message.video.file_id, name=video_name)
@@ -41,26 +40,23 @@ async def add_video_handler(message: types.Message, command: CommandObject, bot:
     else:
         await message.reply("❌ Iltimos, video yuboring!")
 
-async def add_department_employee(message: types.Message, bot: Bot):
+async def add_department_employee(message: types.Message, command: CommandObject, bot: Bot):
     if not is_admin(message.from_user.id):
         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
         return
 
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        await message.reply("❌ Format: /add_dep_emp department_name, employee_name")
-        return
-
-    data = args[1].split(",", maxsplit=1)
+    data = command.args.split(",")
     if len(data) < 2:
-        await message.reply("❌ Format: /add_dep_emp department_name, employee_name")
+        await message.reply("❌ Format: /add_dep_emp rasm department_name, employee_name")
         return
-
     department_name = data[0].strip()
     employee_name = data[1].strip()
-
+    if not message.photo:  # Rasm yuborilganligini tekshirish
+        await message.reply("❌ Iltimos, rasm yuboring!")
+        return
+    photo_id = message.photo[-1].file_id
     try:
-        await add_dekanat_to_department(department_name, employee_name)
+        await add_dekanat_to_department(department_name, employee_name, photo_id)
         await message.reply("✅ Muvafaqiyatli qo'shildi!")
     except Exception as e:
         await message.reply(f"❌ Xatolik: {e}")

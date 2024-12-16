@@ -49,7 +49,8 @@ async def init_db():
             await db.execute("""
             CREATE TABLE IF NOT EXISTS departments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                department_name TEXT
+                department_name TEXT, 
+                photo_id TEXT
             )""")
 
             await db.execute("""
@@ -113,7 +114,7 @@ async def like_video(user_id, video_id, like=True):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             # Checking if the user has already voted
-            cursor = await db.execute("SELECT 1 FROM user_likes WHERE user_id = ? AND video_id = ?", (user_id, video_id)) 
+            cursor = await db.execute("SELECT 1 FROM user_likes WHERE user_id = ?", (user_id,)) 
             if await cursor.fetchone():
                 return False  # User has already voted
 
@@ -144,7 +145,7 @@ async def get_video_votes(video_id: int):
     except Exception as e:
         print(f"Error getting votes for video_id={video_id}: {e}")
 
-async def add_dekanat_to_department(department_name, employee_name):
+async def add_dekanat_to_department(department_name, employee_name, photo_id):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             # Departamentni topishga harakat qiling
@@ -160,8 +161,8 @@ async def add_dekanat_to_department(department_name, employee_name):
             else:
                 # Departament mavjud bo‘lmasa, uni yarating
                 cursor = await db.execute(
-                    "INSERT INTO departments (department_name) VALUES (?)",
-                    (department_name,)
+                    "INSERT INTO departments (department_name, photo_id) VALUES (?, ?)",
+                    (department_name, photo_id)
                 )
                 department_id = cursor.lastrowid
                 print(f"{department_id}-{department_name} bo'limi yaratildi.")
@@ -180,7 +181,7 @@ async def like_employee(user_id, name_id, like=True):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             # Checking if the user has already voted
-            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ? AND name_id = ?", (user_id, name_id)) 
+            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ? AND name_id = ?", (user_id, name_id))
             if await cursor.fetchone():
                 return False  # User has already voted
 
@@ -192,16 +193,16 @@ async def like_employee(user_id, name_id, like=True):
             await db.commit()
             return True
     except aiosqlite.IntegrityError:
-        print(f"IntegrityError: User {user_id} has already voted for video {name_id}.")
+        print(f"IntegrityError: User {user_id} has already voted for employees {name_id}.")
         return False
     except Exception as e:
-        print(f"Error liking video: {e}")
+        print(f"Error liking employees: {e}")
         return False
 
 async def get_departments():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT id, department_name FROM departments")
+            cursor = await db.execute("SELECT id, department_name, photo_id FROM departments")
             return await cursor.fetchall()
     except Exception as e:
         print(f"Error getting channels: {e}")
