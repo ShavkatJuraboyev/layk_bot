@@ -1,10 +1,80 @@
-from aiogram import types
-from aiogram import Router, Bot, Dispatcher
+from aiogram import Router, Bot, Dispatcher, types
 from aiogram.filters import Command, CommandObject
-from database.db import add_channel, add_video, get_video_votes, get_videos, add_dekanat_to_department
+from database.db import add_channel, add_video, get_video_votes, get_videos, add_dekanat_to_department, get_users, get_channels, get_departments, get_employees
 from utils.auth import is_admin
 
 router = Router()  # Router yaratish
+
+async def admin_start(message: types.Message, bot: Bot):
+    if not is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+
+    buttons = [
+        [types.InlineKeyboardButton(text=f"👥 Foydalanuvchilar", callback_data=f"all_users"),
+        types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"all_channels")],
+        [types.InlineKeyboardButton(text="🗣 Bo'limlar", callback_data=f"all_department"),
+        types.InlineKeyboardButton(text="👬 Xodimlar", callback_data=f"all_employee")],
+        [types.InlineKeyboardButton(text="🎥 Talaba videolari", callback_data=f"all_video")]
+    ]
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await message.answer(text="Quydagilardan birini tanlang", reply_markup=keyboard)
+
+async def users_all(callback: types.CallbackQuery):
+    if not is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+
+    users = await get_users()
+    buttons = [
+        [types.InlineKeyboardButton(text=f"🆔 {i} - {j}")]
+        for i, j in users
+    ]
+    buttons.append([types.InlineKeyboardButton(text=f"🔙 Ortga", callback_data="ortga")])
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(text="Telegram foydalanuvchilari", reply_markup=keyboard)
+
+async def channels_all(callback: types.CallbackQuery):
+    if not is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+
+    channels = await get_channels()
+    buttons = [
+        [types.InlineKeyboardButton(text=f"📢 {i}", url=link)]
+        for name, link in channels
+    ]
+    buttons.append([types.InlineKeyboardButton(text=f"🔙 Ortga", callback_data="ortga"), types.InlineKeyboardButton(text=f"➕ Kanal q'shish", callback_data="add_channel")])
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(text="Barcha telegram kannallar", reply_markup=keyboard)
+
+async def department_all(callback: types.CallbackQuery):
+    if not is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+
+    departments = await get_departments()
+    buttons = [
+        [types.InlineKeyboardButton(text=f"♻️ {department_name}", callback_data=f"department_{department_id}")]
+        for department_id, department_name, _ in departments
+    ]
+    buttons.append([types.InlineKeyboardButton(text=f"🔙 Ortga", callback_data="ortga"), types.InlineKeyboardButton(text=f"➕ Bo'lim q'shish", callback_data="add_department")])
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(text="Barcha bo'limlar", reply_markup=keyboard)
+
+async def employee_all(callback: types.CallbackQuery):
+    if not is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+
+    employees = await get_employees()
+    buttons = [
+        [types.InlineKeyboardButton(text=f"👤 {employee_name} \n 👍({likes}), 👎({dislikes})", callback_data=f"employe_{employee_id}")]
+        for employee_id, employee_name, likes, dislikes, _ in employees
+    ]
+    buttons.append([types.InlineKeyboardButton(text=f"⬅️ Ortga", callback_data="ortga"), types.InlineKeyboardButton(text=f"➕ Xodim/o'qituvchi q'shish", callback_data="add_employee")])
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(text="Barcha xodimlar/o'qituvchilar", reply_markup=keyboard)
 
 # /add_channel komandasi handleri
 async def add_channel_handler(message: types.Message, bot: Bot):
@@ -88,6 +158,23 @@ async def view_videos_handler(message: types.Message, bot: Bot):
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
     dp.include_router(router)  # Routerni Dispatcherga qo'shish
+    router.message.register(admin_start, Command('start_admin')) # /start_admin hamma malumotlarni chaqirish
+    router.callback_query.register(
+        users_all,
+        lambda c: c.data and c.data.startswith("all_users")  # all users views
+    )
+    router.callback_query.register(
+        channels_all,
+        lambda c: c.data and c.data.startswith("all_channels")  # all users views
+    )
+    router.callback_query.register(
+        department_all,
+        lambda c: c.data and c.data.startswith("all_department")  # all users views
+    )
+    router.callback_query.register(
+        employee_all,
+        lambda c: c.data and c.data.startswith("all_employee")  # all users views
+    )
     router.message.register(add_channel_handler, Command("add_channel"))  # /add_channel komandasini ro'yxatga olish
     router.message.register(add_video_handler, Command("add_video"))  # /add_video komandasini ro'yxatga olish
     router.message.register(add_department_employee, Command("add_dep_emp"))

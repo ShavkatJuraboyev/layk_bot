@@ -235,3 +235,12 @@ async def get_employees():
     except Exception as e:
         print(f"Error getting employees: {e}")
         return []
+
+async def get_users():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT * FROM users")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting employees: {e}")
+        return []
