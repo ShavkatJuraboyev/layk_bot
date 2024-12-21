@@ -138,7 +138,6 @@ async def get_video_votes(video_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute("SELECT likes, dislikes FROM videos WHERE id = :video_id", {"video_id": video_id})
             result = await cursor.fetchone()
-            print(result)  # Natijani tekshirish
             if result:
                 return {"likes": result[0], "dislikes": result[1]}
             return {"likes": 0, "dislikes": 0}
