@@ -105,7 +105,7 @@ async def employee_like(callback: types.CallbackQuery):
     employees = await get_employees_by_department(department_id)
 
     if not employees:  
-        await message.answer("❌ Hozircha bo'limlar mavjud emas.")
+        await callback.message.answer("❌ Hozircha bo'limlar mavjud emas.")
         return
 
         # Inline tugmalar orqali deparmentlarni ro'yxatini ko'rsatish

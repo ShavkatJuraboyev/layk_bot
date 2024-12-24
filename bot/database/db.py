@@ -93,6 +93,26 @@ async def get_channels():
         print(f"Error getting channels: {e}")
         return []
 
+async def delete_channel(name):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM channels WHERE name = ?", (name,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting channel: {e}")
+
+async def edit_channel(old_name, new_name, new_link):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE channels SET name = ?, link = ? WHERE name = ?",
+                (new_name, new_link, old_name),
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error editing channel: {e}")
+
+
 async def add_video(file_id, name):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -109,6 +129,25 @@ async def get_videos():
     except Exception as e:
         print(f"Error getting videos: {e}")
         return []
+
+async def delete_video(name):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM videos WHERE name = ?", (name,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting channel: {e}")
+
+async def edit_video(old_name, new_name, file_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE videos SET name = ?, file_id = ? WHERE name = ?",
+                (new_name, file_id, old_name),
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error editing channel: {e}")
 
 async def like_video(user_id, video_id, like=True):
     try:
@@ -132,17 +171,105 @@ async def like_video(user_id, video_id, like=True):
         print(f"Error liking video: {e}")
         return False
 
-# database/db.py
-async def get_video_votes(video_id: int):
+async def add_department(department_name, photo_id):
+    try:  
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "INSERT INTO departments (department_name, photo_id) VALUES (?, ?)",
+                (department_name, photo_id)
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding department: {e}")
+
+async def get_departments():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT likes, dislikes FROM videos WHERE id = :video_id", {"video_id": video_id})
-            result = await cursor.fetchone()
-            if result:
-                return {"likes": result[0], "dislikes": result[1]}
-            return {"likes": 0, "dislikes": 0}
+            cursor = await db.execute("SELECT id, department_name, photo_id FROM departments")
+            return await cursor.fetchall()
     except Exception as e:
-        print(f"Error getting votes for video_id={video_id}: {e}")
+        print(f"Error getting department: {e}")
+        return []
+
+async def delete_department(department_name):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM departments WHERE department_name = ?", (department_name,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting channel: {e}")
+
+async def edit_department(old_name, new_name, photo_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE departments SET department_name = ?, photo_id = ? WHERE department_name = ?",
+                (new_name, photo_id, old_name),
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error editing channel: {e}")
+
+async def add_employee(employee_name, department_id):
+    try:  
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "INSERT INTO employees (employee_name, department_id) VALUES (?, ?)",
+                (employee_name, department_id)
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding employe: {e}")
+
+async def get_employees():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT * FROM employees")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting employees: {e}")
+        return []
+
+async def delete_employee(employee_name):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM employees WHERE employee_name = ?", (employee_name,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting channel: {e}")
+
+async def edit_employee(old_name, new_name, department_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE employees SET employee_name = ?, department_id = ? WHERE name = ?",
+                (new_name, department_id, old_name),
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Error editing channel: {e}")
+
+async def like_employee(user_id, name_id, like=True):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            # Checking if the user has already voted
+            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ? AND name_id = ?", (user_id, name_id))
+            if await cursor.fetchone():
+                return False  # User has already voted
+
+            await db.execute("INSERT INTO emplyee_likes (user_id, name_id) VALUES (?, ?)", (user_id, name_id))
+            if like:
+                await db.execute("UPDATE employees SET likes = likes + 1 WHERE id = ?", (name_id,))
+            else:
+                await db.execute("UPDATE employees SET dislikes = dislikes + 1 WHERE id = ?", (name_id,))
+            await db.commit()
+            return True
+    except aiosqlite.IntegrityError:
+        print(f"IntegrityError: User {user_id} has already voted for employees {name_id}.")
+        return False
+    except Exception as e:
+        print(f"Error liking employees: {e}")
+        return False
 
 async def add_dekanat_to_department(department_name, employee_name, photo_id):
     try:
@@ -176,37 +303,6 @@ async def add_dekanat_to_department(department_name, employee_name, photo_id):
     except Exception as e:
         print(f"Error adding dekanat to department: {e}")
 
-async def like_employee(user_id, name_id, like=True):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            # Checking if the user has already voted
-            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ? AND name_id = ?", (user_id, name_id))
-            if await cursor.fetchone():
-                return False  # User has already voted
-
-            await db.execute("INSERT INTO emplyee_likes (user_id, name_id) VALUES (?, ?)", (user_id, name_id))
-            if like:
-                await db.execute("UPDATE employees SET likes = likes + 1 WHERE id = ?", (name_id,))
-            else:
-                await db.execute("UPDATE employees SET dislikes = dislikes + 1 WHERE id = ?", (name_id,))
-            await db.commit()
-            return True
-    except aiosqlite.IntegrityError:
-        print(f"IntegrityError: User {user_id} has already voted for employees {name_id}.")
-        return False
-    except Exception as e:
-        print(f"Error liking employees: {e}")
-        return False
-
-async def get_departments():
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT id, department_name, photo_id FROM departments")
-            return await cursor.fetchall()
-    except Exception as e:
-        print(f"Error getting channels: {e}")
-        return []
-
 async def get_employees_by_department(department_id):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -224,15 +320,6 @@ async def get_employees_by_department(department_id):
                 return []
     except Exception as e:
         print(f"Error fetching dekanats for department ID {department_id}: {e}")
-        return []
-
-async def get_employees():
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT * FROM employees")
-            return await cursor.fetchall()
-    except Exception as e:
-        print(f"Error getting employees: {e}")
         return []
 
 async def get_users():
