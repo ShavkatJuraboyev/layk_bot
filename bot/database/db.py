@@ -1,11 +1,11 @@
 import aiosqlite
 import os
 
-# Define a directory for the database
-DB_DIR = "data"  # Or any other directory you want to use
-DB_PATH = os.path.join(DB_DIR, "bot.db")  # Combine directory with filename
+# Ma'lumotlar bazasi uchun katalogni belgilang
+DB_DIR = "data"  #Yoki siz foydalanmoqchi bo'lgan boshqa katalog
+DB_PATH = os.path.join(DB_DIR, "bot.db")  #Katalogni fayl nomi bilan birlashtiring
 
-# Ensure the directory exists
+# Katalog mavjudligiga ishonch hosil qiling
 if not os.path.exists(DB_DIR):
     os.makedirs(DB_DIR)
 
@@ -73,7 +73,6 @@ async def init_db():
             await db.commit()
     except Exception as e:
         print(f"Error initializing database: {e}")
-
 
 
 async def add_channel(name, link):
@@ -171,6 +170,7 @@ async def like_video(user_id, video_id, like=True):
         print(f"Error liking video: {e}")
         return False
 
+
 async def add_department(department_name, photo_id):
     try:  
         async with aiosqlite.connect(DB_PATH) as db:
@@ -209,6 +209,7 @@ async def edit_department(old_name, new_name, photo_id):
             await db.commit()
     except Exception as e:
         print(f"Error editing channel: {e}")
+
 
 async def add_employee(employee_name, department_id):
     try:  
@@ -270,6 +271,7 @@ async def like_employee(user_id, name_id, like=True):
     except Exception as e:
         print(f"Error liking employees: {e}")
         return False
+
 
 async def add_dekanat_to_department(department_name, employee_name, photo_id):
     try:
