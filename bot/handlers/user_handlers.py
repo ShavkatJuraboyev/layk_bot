@@ -19,7 +19,7 @@ async def start_handler(message: types.Message, bot: Bot):
     )
     if is_member:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+        photo_path = os.path.join(base_dir, "rasm", "rasm4.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -32,10 +32,10 @@ async def start_handler(message: types.Message, bot: Bot):
                 types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
                 for department_id, department_name, _ in departments
             ]
-            buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
+            # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await message.answer_photo(photo=photo, caption="👋 Assalomu alaykum! Ovoz berish botiga xush kelibsiz.\nUshbu bot orqali siz quyidagi bo'limlardan birini tanlanb ovoz berishingiz mumkin:", reply_markup=keyboard)
+            await message.answer_photo(photo=photo, caption="🏛TATU SAMARQAND FILIALIDA ⚡️\"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -60,7 +60,7 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
     if is_member:
         await callback.message.answer("Tabriklayman! Siz barcha kanallarga a'zo bo'ldingiz")
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+        photo_path = os.path.join(base_dir, "rasm", "rasm4.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -73,10 +73,10 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
                 types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
                 for department_id, department_name, _ in departments
             ]
-            buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
+            # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await callback.message.answer_photo(photo=photo, caption="👋 Assalomu alaykum! Ovoz berish botiga xush kelibsiz.\nUshbu bot orqali siz quyidagi bo'limlardan birini tanlanb ovoz berishingiz mumkin:", reply_markup=keyboard)
+            await callback.message.answer_photo(photo=photo, caption="🏛TATU SAMARQAND FILIALIDA ⚡️\"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI. ", reply_markup=keyboard)
         else:
             await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -110,8 +110,8 @@ async def employee_like(callback: types.CallbackQuery):
 
         # Inline tugmalar orqali deparmentlarni ro'yxatini ko'rsatish
     buttons = [[
-        types.InlineKeyboardButton(text=employee_name, callback_data=f"employee_{employee_id}")]
-        for employee_id, employee_name, _, _, _ in employees
+        types.InlineKeyboardButton(text=f"👤 {employee_name} \n 👍({likes}), 👎({dislikes})", callback_data=f"employee_{employee_id}")]
+        for employee_id, employee_name, likes, dislikes, _ in employees
     ]
     departments = await get_departments()
     department = next(f for f in departments if f[0] == department_id)
@@ -121,7 +121,7 @@ async def employee_like(callback: types.CallbackQuery):
     _, _, photo_id = department
     buttons.append([types.InlineKeyboardButton(text="🔙 Ortga qaytish", callback_data="back_to_departments")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo_id, caption="Quyidagilardan birini tanlang:", reply_markup=keyboard)
+    await callback.message.answer_photo(photo=photo_id, caption="🏛TATU SAMARQAND FILIALIDA ⚡️\"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.", reply_markup=keyboard)
     await callback.message.delete()
 
 async def employee_handler(callback: types.CallbackQuery):
@@ -150,19 +150,26 @@ async def employee_handler(callback: types.CallbackQuery):
 
 # Like/dislike tugmalari uchun handler
 async def employee_handle_likes(callback: types.CallbackQuery):
-    if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
+    if not callback.data:
         await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
         return
 
-    # Callback ma'lumotlarini ajratish
     data = callback.data.split("_")
     employee_id = int(data[1])
     like = data[0] == "like"
+
     employees = await get_employees()
     employee = next((v for v in employees if v[0] == employee_id), None)
+
+    if not employee:
+        await callback.answer("❌ Ma'lumot topilmadi!")
+        return
+
     id_, employee_name, likes, dislikes, department_id = employee
-    if id_ == employee_id:
-        success = await like_employee(callback.from_user.id, department_id, like)
+
+    # ❗ To'g'ri ID yuborish: employee_id, department_id emas
+    success = await like_employee(callback.from_user.id, employee_id, like)
+
     if success:
         await callback.answer("✅ Ovozingiz qabul qilindi!")
         buttons = [
@@ -177,21 +184,23 @@ async def employee_handle_likes(callback: types.CallbackQuery):
         ]
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=[button])
         await callback.message.answer("❌ Siz avval ovoz bergansiz!", reply_markup=keyboard)
+
     await callback.message.delete()
+
 
 async def back_to_departmenys(callback: types.CallbackQuery):
     departments = await get_departments()
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-    photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+    photo_path = os.path.join(base_dir, "rasm", "rasm4.jpg")
     photo = FSInputFile(photo_path)
 
     buttons = [
         [types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
         for department_id, department_name, _ in departments
     ]
-    buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
+    # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo, caption="Quydagilardan birini tanlang", reply_markup=keyboard)
+    await callback.message.answer_photo(photo=photo, caption="🏛TATU SAMARQAND FILIALIDA ⚡️\"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.", reply_markup=keyboard)
     await callback.message.delete()
 
 async def like_videos(callback: types.CallbackQuery):

@@ -654,8 +654,6 @@ async def confirm_edit_video(message: types.Message, command: CommandObject):
     except ValueError:
         await message.reply("❌ Xato! Formatni tekshirib qaytadan urinib ko‘ring.")
 
-
-
 async def add_department_employee(message: types.Message, command: CommandObject, bot: Bot):
     if not is_admin(message.from_user.id):
         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
@@ -676,7 +674,6 @@ async def add_department_employee(message: types.Message, command: CommandObject
         await message.reply("✅ Muvafaqiyatli qo'shildi!")
     except Exception as e:
         await message.reply(f"❌ Xatolik: {e}")
-
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
