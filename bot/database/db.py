@@ -253,10 +253,10 @@ async def edit_employee(old_name, new_name, department_id):
 async def like_employee(user_id, name_id, like=True):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            # Checking if the user has already voted
-            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ? AND name_id = ?", (user_id, name_id))
+            # Foydalanuvchi allaqachon boshqa xodimga ovoz berganmi?
+            cursor = await db.execute("SELECT 1 FROM emplyee_likes WHERE user_id = ?", (user_id,))
             if await cursor.fetchone():
-                return False  # User has already voted
+                return False  # Bu foydalanuvchi allaqachon ovoz bergan
 
             await db.execute("INSERT INTO emplyee_likes (user_id, name_id) VALUES (?, ?)", (user_id, name_id))
             if like:
@@ -266,10 +266,10 @@ async def like_employee(user_id, name_id, like=True):
             await db.commit()
             return True
     except aiosqlite.IntegrityError:
-        print(f"IntegrityError: User {user_id} has already voted for employees {name_id}.")
+        print(f"IntegrityError: User {user_id} has already voted.")
         return False
     except Exception as e:
-        print(f"Error liking employees: {e}")
+        print(f"Error liking employee: {e}")
         return False
 
 
