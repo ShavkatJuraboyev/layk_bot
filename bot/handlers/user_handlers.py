@@ -41,7 +41,7 @@ async def start_handler(message: types.Message, bot: Bot):
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  1-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -90,7 +90,7 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  1-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -143,7 +143,7 @@ async def employee_like(callback: types.CallbackQuery):
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  1-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
     await callback.message.delete()
@@ -230,7 +230,7 @@ async def back_to_departmenys(callback: types.CallbackQuery):
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  1-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
     await callback.message.delete()

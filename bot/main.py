@@ -7,7 +7,7 @@ from handlers.user_handlers import register_user_handlers
 from utils.auth import is_admin
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "7775133106:AAEeKfDrruydqqk8lKqgn0KOB5iSuUc7oME"
+BOT_TOKEN = "7739371224:AAEOOLaf4FX4zOiOo53RCsDrUqQ4-UV9--w"
 
 async def main():
     # Bot va Dispatcher obyektlarini yaratish
