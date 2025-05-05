@@ -4,10 +4,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from database.db import init_db
 from handlers.admin_handlers import register_admin_handlers
 from handlers.user_handlers import register_user_handlers
-from utils.auth import is_admin
+
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "7739371224:AAEOOLaf4FX4zOiOo53RCsDrUqQ4-UV9--w"
+BOT_TOKEN = "7739371224:AAEOOLaf4FX4zOiOo53RCsDrUqQ4-UV9--w"  # o'zgartiring
 
 async def main():
     # Bot va Dispatcher obyektlarini yaratish

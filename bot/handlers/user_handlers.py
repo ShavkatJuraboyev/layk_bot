@@ -4,6 +4,7 @@ from database.db import get_channels, get_videos, like_video, get_departments, g
 from utils.membership import check_membership
 from aiogram.types import InputFile, FSInputFile
 import os
+from utils.auth import is_admin
 
 router = Router()  # Router yaratish
 
@@ -17,6 +18,12 @@ async def start_handler(message: types.Message, bot: Bot):
     is_member = all(
         [await check_membership(bot, link.split("/")[-1], user_id) for _, link in channels]
     )
+
+    if not is_member:
+        buttons = [[types.InlineKeyboardButton(text=name, url=link)] for name, link in channels]
+        buttons.append([types.InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_memberships")])
+        return await message.answer("Quyidagi kanallarga a'zo bo'ling va tekshiring 👇", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
+    
     if is_member:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
         photo_path = os.path.join(base_dir, "rasm", "rasm4.jpg")
@@ -109,44 +116,108 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
         await callback.message.delete()
 
 
-async def employee_like(callback: types.CallbackQuery):
-    if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
-        await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
-        return
-    
-    # Callback ma'lumotlarini ajratish
-    data = callback.data.split("_")
-    department_id = int(data[1])
+async def employee_like(callback: types.CallbackQuery, bot: Bot):
+    department_id = int(callback.data.split("_")[1])
+    departments = await get_departments()
+    department = next((d for d in departments if d[0] == department_id), None)
+    if not department:
+        return await callback.answer("Bo‘lim topilmadi!")
 
+    _, _, photo_id = department
     employees = await get_employees_by_department(department_id)
 
-    if not employees:  
-        await callback.message.answer("❌ Hozircha bo'limlar mavjud emas.")
-        return
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
 
-        # Inline tugmalar orqali deparmentlarni ro'yxatini ko'rsatish
-    buttons = [[
-        types.InlineKeyboardButton(text=f"👤 {employee_name} \n 👍({likes}), 👎({dislikes})", callback_data=f"employee_{employee_id}")]
-        for employee_id, employee_name, likes, dislikes, _ in employees
-    ]
-    departments = await get_departments()
-    department = next(f for f in departments if f[0] == department_id)
-    if not department:  # Agar video topilmasa
-        await callback.answer("❌ ma'lumot topilmadi!")
-        return
-    _, _, photo_id = department
-    buttons.append([types.InlineKeyboardButton(text="🔙 Ortga qaytish", callback_data="back_to_departments")])
+    buttons = []
+
+    for emp_id, emp_name, likes, _, _ in employees:
+        buttons.append([
+            types.InlineKeyboardButton(
+                text=f"👤 {emp_name} ({likes})",
+                callback_data=f"employee_{emp_id}"
+            )
+        ])
+
+    if is_admin(callback.message.chat.id):
+        buttons.append([
+            types.InlineKeyboardButton(
+                text="📤 Kanalga yuborish",
+                callback_data=f"forward_department_{department_id}"
+            )
+    ])
+    buttons.append([types.InlineKeyboardButton(text="🔙 Ortga", callback_data="back_to_departments")])
+
+    caption = (
+        "🏛 TATU SAMARQAND FILIALIDA ⚡️ \"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.\n\n"
+        "⭐️ \"Eng yaxshi fakultet\" tyutorini aniqlang!\n\n"
+        "🔴 G‘oliblarga diplom va sovg‘alar!\n"
+        "📅 So‘rovnoma 3-maydan 9-maygacha 17:00 gacha davom etadi.\n\n"
+        "🌐 TATU Samarqand filiali axborot xizmati"
+    )
+
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo_id, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" TYUTORI TANLOVIGA START BERILDI. 
-
-⭐️ "Eng yaxshi fakultet"tyutorini aniqlang!
-
-🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
-
-🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
+    await callback.message.answer_photo(photo=photo_id, caption=caption, reply_markup=keyboard)
     await callback.message.delete()
+
+@router.callback_query(lambda c: c.data and c.data.startswith("forward_department_"))
+async def forward_view(callback: types.CallbackQuery, bot: Bot):
+    if not is_admin(callback.from_user.id):
+        return await callback.answer("⛔ Bu tugma faqat adminlar uchun!")
+    
+    department_id = int(callback.data.split("_")[-1])
+    departments = await get_departments()
+    department = next((d for d in departments if d[0] == department_id), None)
+    if not department:
+        return await callback.answer("Bo‘lim topilmadi!")
+
+    _, _, photo_id = department
+    employees = await get_employees_by_department(department_id)
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
+
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
+
+    buttons = []
+
+    for emp_id, emp_name, _, _, _ in employees:
+        url = f"https://t.me/{bot_username}?start=emp_{emp_id}"
+        buttons.append([
+            types.InlineKeyboardButton(text=f"👤 {emp_name}", url=url)
+        ])
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    caption = (
+        "🏛 TATU SAMARQAND FILIALIDA ⚡️ \"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.\n\n"
+        "⭐️ \"Eng yaxshi fakultet\" tyutorini aniqlang!\n\n"
+        "🔴 G‘oliblarga diplom va sovg‘alar!\n"
+        "📅 So‘rovnoma 3-maydan 9-maygacha 17:00 gacha davom etadi.\n\n"
+        "🌐 TATU Samarqand filiali axborot xizmati"
+    )
+
+    # 1. Kanalga yuborish
+    try:
+        await bot.send_photo(
+            chat_id='@python_dasturlash1',  # o'zingizning kanal username'ini yozing (belgisiz!)
+            photo=photo_id,
+            caption=caption,
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        await callback.message.answer(f"❌ Kanalga yuborib bo‘lmadi: {e}")
+        return
+
+    # 2. Adminning o‘ziga yuborish
+    await bot.send_photo(
+        chat_id=callback.from_user.id,
+        photo=photo_id,
+        caption=caption,
+        reply_markup=keyboard
+    )
+
+    await callback.answer("✅ Xabar kanalga va sizga yuborildi.")
+    await callback.answer("✅ Forward uchun xabar tayyor!")
+
 
 async def employee_handler(callback: types.CallbackQuery):
     if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
@@ -164,8 +235,7 @@ async def employee_handler(callback: types.CallbackQuery):
 
     _, employee_name, likes, dislikes, department_id = employee
     buttons = [
-        [types.InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"like_{employee_id}"),
-        types.InlineKeyboardButton(text=f"👎 {dislikes}", callback_data=f"dislike_{employee_id}")],
+        [types.InlineKeyboardButton(text=f"Ovoz berish", callback_data=f"like_{employee_id}")],
         [types.InlineKeyboardButton(text="🔙 Ortga qaytish", callback_data=f"department_{department_id}")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
