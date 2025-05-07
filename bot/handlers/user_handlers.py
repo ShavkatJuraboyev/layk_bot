@@ -44,11 +44,11 @@ async def start_handler(message: types.Message, bot: Bot):
             photo = FSInputFile(photo_path)
             await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" TYUTORI TANLOVIGA START BERILDI. 
 
-⭐️ "Eng yaxshi fakultet"tyutorini aniqlang!
+⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  7-maydan 12-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -93,11 +93,11 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
             photo = FSInputFile(photo_path)
             await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" TYUTORI TANLOVIGA START BERILDI. 
 
-⭐️ "Eng yaxshi fakultet"tyutorini aniqlang!
+⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  7-maydan 12-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -150,9 +150,9 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
 
     caption = (
         "🏛 TATU SAMARQAND FILIALIDA ⚡️ \"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.\n\n"
-        "⭐️ \"Eng yaxshi fakultet\" tyutorini aniqlang!\n\n"
+        "⭐️ \"Eng yaxshi filial tyutori\"ni aniqlang!\n\n"
         "🔴 G‘oliblarga diplom va sovg‘alar!\n"
-        "📅 So‘rovnoma 3-maydan 9-maygacha 17:00 gacha davom etadi.\n\n"
+        "📅 So‘rovnoma 7-maydan 12-maygacha 17:00 gacha davom etadi.\n\n"
         "🌐 TATU Samarqand filiali axborot xizmati"
     )
 
@@ -181,17 +181,17 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
 
     buttons = []
 
-    for emp_id, emp_name, _, _, _ in employees:
+    for emp_id, emp_name, like, _, _ in employees:
         url = f"https://t.me/{bot_username}?start=emp_{emp_id}"
         buttons.append([
-            types.InlineKeyboardButton(text=f"👤 {emp_name}", url=url)
+            types.InlineKeyboardButton(text=f"👤 {emp_name} ({like})", url=url)
         ])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     caption = (
         "🏛 TATU SAMARQAND FILIALIDA ⚡️ \"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.\n\n"
-        "⭐️ \"Eng yaxshi fakultet\" tyutorini aniqlang!\n\n"
+        "⭐️ \"Eng yaxshi filial tyutori\"ni aniqlang!\n\n"
         "🔴 G‘oliblarga diplom va sovg‘alar!\n"
-        "📅 So‘rovnoma 3-maydan 9-maygacha 17:00 gacha davom etadi.\n\n"
+        "📅 So‘rovnoma 7-maydan 12-maygacha 17:00 gacha davom etadi.\n\n"
         "🌐 TATU Samarqand filiali axborot xizmati"
     )
 
@@ -296,11 +296,11 @@ async def back_to_departmenys(callback: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" TYUTORI TANLOVIGA START BERILDI. 
 
-⭐️ "Eng yaxshi fakultet"tyutorini aniqlang!
+⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
 🔴 Mazkur so‘rovnomada g'olib bo'lganlarga diplom va qimmat baho sovg'alar topshiriladi.
 
-❗️Eslatib o‘tamiz: So‘rovnomaning  3-maydan 9-mayga qadar   17:00gacha davom etadi.
+❗️Eslatib o‘tamiz: So‘rovnomaning  7-maydan 12-mayga qadar   17:00gacha davom etadi.
 
 🌐TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
     await callback.message.delete()
