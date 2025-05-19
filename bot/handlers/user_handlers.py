@@ -26,7 +26,7 @@ async def start_handler(message: types.Message, bot: Bot):
     
     if is_member:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm.png")
+        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -74,7 +74,7 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
     if is_member:
         await callback.message.answer("Tabriklayman! Siz barcha kanallarga a'zo bo'ldingiz")
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm.png")
+        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -289,7 +289,7 @@ async def employee_handle_likes(callback: types.CallbackQuery):
 async def back_to_departmenys(callback: types.CallbackQuery):
     departments = await get_departments()
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-    photo_path = os.path.join(base_dir, "rasm", "rasm.png")
+    photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
     photo = FSInputFile(photo_path)
 
     buttons = [
