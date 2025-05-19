@@ -46,8 +46,12 @@ async def start_handler(message: types.Message, bot: Bot):
 
 ⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
+📅 So‘rovnoma yana uch kunga uzaytirildi 12-maydan 14-mayga  soat 17:00 gacha davom etadi.
+
+☑️Hurmatli tyutorlar faol bo'lingizlar
+
 🔴 G‘oliblar diplom va sovg‘alar bilan taqdirlanadi!
-📅 So‘rovnoma 7-maydan 12-may soat 17:00 gacha davom etadi.
+
 
 🌐 TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -94,8 +98,12 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
 
 ⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
+📅 So‘rovnoma yana uch kunga uzaytirildi 12-maydan 14-mayga  soat 17:00 gacha davom etadi.
+
+☑️Hurmatli tyutorlar faol bo'lingizlar
+
 🔴 G‘oliblar diplom va sovg‘alar bilan taqdirlanadi!
-📅 So‘rovnoma 7-maydan 12-may soat 17:00 gacha davom etadi.
+
 
 🌐 TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
         else:
@@ -151,8 +159,12 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
 
 ⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
+📅 So‘rovnoma yana uch kunga uzaytirildi 12-maydan 14-mayga  soat 17:00 gacha davom etadi.
+
+☑️Hurmatli tyutorlar faol bo'lingizlar
+
 🔴 G‘oliblar diplom va sovg‘alar bilan taqdirlanadi!
-📅 So‘rovnoma 7-maydan 12-may soat 17:00 gacha davom etadi.
+
 
 🌐 TATU Samarqand filiali axborot xizmati"""
     )
@@ -193,8 +205,12 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
 
 ⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
+📅 So‘rovnoma yana uch kunga uzaytirildi 12-maydan 14-mayga  soat 17:00 gacha davom etadi.
+
+☑️Hurmatli tyutorlar faol bo'lingizlar
+
 🔴 G‘oliblar diplom va sovg‘alar bilan taqdirlanadi!
-📅 So‘rovnoma 7-maydan 12-may soat 17:00 gacha davom etadi.
+
 
 🌐 TATU Samarqand filiali axborot xizmati"""
     )
@@ -302,8 +318,12 @@ async def back_to_departmenys(callback: types.CallbackQuery):
 
 ⭐️ "Eng yaxshi filial tyutori"ni aniqlang!
 
+📅 So‘rovnoma yana uch kunga uzaytirildi 12-maydan 14-mayga  soat 17:00 gacha davom etadi.
+
+☑️Hurmatli tyutorlar faol bo'lingizlar
+
 🔴 G‘oliblar diplom va sovg‘alar bilan taqdirlanadi!
-📅 So‘rovnoma 7-maydan 12-may soat 17:00 gacha davom etadi.
+
 
 🌐 TATU Samarqand filiali axborot xizmati""", reply_markup=keyboard)
     await callback.message.delete()
