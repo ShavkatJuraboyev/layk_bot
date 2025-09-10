@@ -1,5 +1,6 @@
-from aiogram import Router, Bot, Dispatcher, types
+from aiogram import Router, Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
+from aiogram.types import FSInputFile
 from database.db import (
     add_channel, add_video, get_videos, 
     add_dekanat_to_department, get_users, 
@@ -8,8 +9,29 @@ from database.db import (
     edit_channel, edit_video, delete_video, edit_department, 
     delete_department, edit_employee, delete_employee)
 from utils.auth import is_admin
+import os
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+image_path = os.path.join(BASE_DIR, "images", "sunny.jpg")
 router = Router()  # Router yaratish
+
+from datetime import datetime, timedelta
+import requests
+from bs4 import BeautifulSoup
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+TOKEN = "6239778268:AAFmIdsNKmjzMFRbVodT74TU0Dl1boR5ivE"
+
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
+
+ADMIN_ID = 1421622919
+WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
+CITY = "Samarqand"
+API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=teacher"
+API_TOKEN = "Y-R36P1BY-eLfuCwQbcbAlvt9GAMk-WP"
 
 async def admin_start(message: types.Message, bot: Bot):
     if not is_admin(message.from_user.id):
@@ -674,6 +696,199 @@ async def add_department_employee(message: types.Message, command: CommandObject
         await message.reply("✅ Muvafaqiyatli qo'shildi!")
     except Exception as e:
         await message.reply(f"❌ Xatolik: {e}")
+
+
+
+# 🔍 API dan xodimlarni olish
+def fetch_employees():
+    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    res = requests.get(API_URL, headers=headers).json()
+
+    if isinstance(res, dict):
+        return res.get("data", {}).get("items", [])
+    elif isinstance(res, list):
+        return res
+    return []
+
+def get_weather():
+    url = "https://obhavo.uz/samarkand"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    res = requests.get(url, headers=headers)
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    # Shahar nomi va sana
+    city = soup.find("h2").get_text(strip=True)
+    date = soup.find("div", class_="current-day").get_text(strip=True)
+
+    # Haroratlar va umumiy holat
+    forecast = soup.find("div", class_="current-forecast")
+    day_temp = forecast.find_all("span")[1].get_text(strip=True)   # +33°
+    night_temp = forecast.find_all("span")[2].get_text(strip=True) # +23°
+    desc = soup.find("div", class_="current-forecast-desc").get_text(strip=True)
+
+    # Namlik, shamol, bosim
+    details = soup.find("div", class_="current-forecast-details")
+    col1 = details.find("div", class_="col-1").find_all("p")
+    col2 = details.find("div", class_="col-2").find_all("p")
+
+    humidity = col1[0].get_text(strip=True)
+    wind = col1[1].get_text(strip=True)
+    pressure = col1[2].get_text(strip=True)
+
+    moon = col2[0].get_text(strip=True)
+    sunrise = col2[1].get_text(strip=True)
+    sunset = col2[2].get_text(strip=True)
+
+    # Tong/Kun/Oqshom
+    times = soup.find("div", class_="current-forecast-day").find_all("div")
+    tong = times[0].find("p", class_="forecast").get_text(strip=True)
+    kun = times[1].find("p", class_="forecast").get_text(strip=True)
+    oqshom = times[2].find("p", class_="forecast").get_text(strip=True)
+
+    text = (
+        f"🌆 {city}\n"
+        f"📅 {date}\n\n"
+        f"☀️ {day_temp}   🌙 {night_temp}\n"
+        f"{desc}\n"
+        f"💧 {humidity}\n"
+        f"🌬 {wind}\n"
+        f"🔽 {pressure}\n\n"
+        f"🌙 {moon}\t 🌅 {sunrise}\t 🌇 {sunset}\n\n"
+        f"🌄 Tong: {tong} \t 🌞 Kun: {kun}\t 🌙 Oqshom: {oqshom}"
+    )
+
+    return text
+
+# # === Ob-havo olish funksiyasi ===
+def get_weather_api():
+    # url = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=uz"
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={CITY},UZ&appid={WEATHER_API_KEY}&units=metric&lang=uz"
+    res = requests.get(url).json()
+
+    temp = res['main']['temp']
+    desc = res['weather'][0]['description']
+    humidity = res['main']['humidity']
+    wind = res['wind']['speed']
+
+    text = (
+        f"🌤 <b>{CITY} ob-havo</b>\n\n"
+        f"🌡 Harorat: <b>{temp}°C</b>\n"
+        f"☁️ Holati: <b>{desc.capitalize()}</b>\n"
+        f"💧 Namlik: <b>{humidity}%</b>\n"
+        f"🌬 Shamol: <b>{wind} m/s</b>\n\n"
+        f"📅 {datetime.now().strftime('%d-%m-%Y')}"
+    )
+    return text
+
+
+# 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
+def get_birthdays():
+    employees = fetch_employees()
+    today = datetime.now().strftime("%m-%d")
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%m-%d")
+
+    birthdays_today, birthdays_tomorrow = [], []
+
+    for emp in employees:
+        try:
+            birth_date = datetime.fromtimestamp(emp["birth_date"]).strftime("%m-%d")
+            info = {
+                "full_name": emp["full_name"],
+                "department": emp["department"]["name"] if emp.get("department") else "",
+                "image": emp.get("image")
+            }
+            if birth_date == today:
+                birthdays_today.append(info)
+            elif birth_date == tomorrow:
+                birthdays_tomorrow.append(info)
+        except Exception as e:
+            print(f"Xatolik: {e}")
+
+    return birthdays_today, birthdays_tomorrow
+
+# 📤 Adminni tug‘ilgan kunlar bilan ogohlantirish
+async def send_birthday_notifications():
+    birthdays_today, birthdays_tomorrow = get_birthdays()
+
+    msg = "🎂 <b>Tug‘ilgan kunlar haqida xabar</b>\n\n"
+
+    if birthdays_today:
+        msg += "✅ <b>Bugun:</b>\n"
+        for emp in birthdays_today:
+            msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
+
+    if birthdays_tomorrow:
+        msg += "📌 <b>Ertaga:</b>\n"
+        for emp in birthdays_tomorrow:
+            msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
+
+    if not birthdays_today and not birthdays_tomorrow:
+        msg += "❌ Bugun va ertaga tug‘ilgan kun yo‘q."
+
+    await bot.send_message(chat_id=ADMIN_ID, text=msg)
+
+
+# === Har kuni ertalab 07:00 da ishlaydigan funksiya ===
+async def morning_job():
+    # Ob-havoni yuborish
+    weather_text = get_weather()
+    channels = await get_channels()
+
+    if not channels:
+        await bot.send_message(chat_id=ADMIN_ID, text="⚠️ Kanal ro'yxati bo'sh! Ob-havo faqat adminga yuborildi.")
+        return
+    
+    failed_channels = []
+    success = False
+    for name, link in channels:
+        if link.startswith("https://t.me/"):
+            chat_id = "@" + link.split("/")[-1]
+        else:
+            chat_id = link
+        try:
+            photo = FSInputFile(image_path)
+            await bot.send_photo(chat_id=chat_id, photo=photo, caption=weather_text)
+            success = True
+        except Exception as e:
+            print(f"{name} kanaliga yuborishda xatolik: {e}")
+            failed_channels.append(name)
+    if not success:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text="⚠️ Hech qaysi kanalga xabar yuborilmadi!"
+        )
+    elif failed_channels:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"⚠️ Quyidagi kanallarga xabar yuborilmadi:\n" + "\n".join(failed_channels)
+        )
+
+
+
+@router.message(F.text == "/obhavo")
+async def obhavo_command(message: types.Message):
+    text = get_weather()
+    await message.answer(text)
+
+@router.message(F.text == "/obhavo_api")
+async def obhavo_command(message: types.Message):
+    text = get_weather_api()
+    await message.answer(text)
+
+# === /test komandasi ===
+@router.message(F.text == "/test")
+async def test_command(message: types.Message):
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return await message.answer("⛔ Bu buyruq faqat admin uchun!")
+
+    await message.answer("⏳ Test boshlanmoqda...")
+    await send_birthday_notifications()
+    await morning_job()
+    await message.answer("✅ Test tugadi, kanal va admin xabarlarni oldi.")
+
+
+
+
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
