@@ -35,8 +35,8 @@ async def main():
     register_user_handlers(dp, bot)
 
     scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tashkent"))
-    scheduler.add_job(morning_job, "cron", hour=9, minute=10)  # har kuni 07:00 da ishga tushadi
-    scheduler.add_job(send_birthday_notifications, trigger='cron', hour=9, minute=10, misfire_grace_time=30)
+    scheduler.add_job(morning_job, "cron", hour=7, minute=0)  # har kuni 07:00 da ishga tushadi
+    scheduler.add_job(send_birthday_notifications, trigger='cron', hour=8, minute=30, misfire_grace_time=30)
   # har kuni 09:00 da ishga tushadi
     scheduler.start()
     

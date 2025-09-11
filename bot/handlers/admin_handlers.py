@@ -33,6 +33,8 @@ CITY = "Samarqand"
 API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=teacher"
 API_TOKEN = "Y-R36P1BY-eLfuCwQbcbAlvt9GAMk-WP"
 
+WEATHER_API_KEY_ONE = "65484c016bd4407dbff62042251009" 
+
 async def admin_start(message: types.Message, bot: Bot):
     if not is_admin(message.from_user.id):
         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
@@ -87,7 +89,6 @@ async def users_all(callback: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.answer(text="Telegram foydalanuvchilari", reply_markup=keyboard)
     await callback.message.delete()
-
 
 async def channels_all(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
@@ -238,7 +239,6 @@ async def confirm_edit_channel(message: types.Message, command: CommandObject):
     except ValueError:
         await message.reply("❌ Xato! Formatni tekshirib qaytadan urinib ko‘ring.")
 
-
 async def department_all(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
         await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
@@ -378,7 +378,6 @@ async def confirm_edit_department(message: types.Message, command: CommandObject
         await message.answer(f"✅ Bo'lim yangilandi:\nEski nomi: {old_name}\nYangi nomi: {new_name}\nYangi rasm id: {photo_id}", reply_markup=keyboard)
     except ValueError:
         await message.reply("❌ Xato! Formatni tekshirib qaytadan urinib ko‘ring.")
-
 
 async def employee_all(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
@@ -521,7 +520,6 @@ async def confirm_edit_employee(message: types.Message, command: CommandObject):
         await message.answer(f"✅ Bo'lim yangilandi:\nEski nomi: {old_name}\nYangi nomi: {new_name}\nYangi bo'lim id: {department_id}", reply_markup=keyboard)
     except ValueError:
         await message.reply("❌ Xato! Formatni tekshirib qaytadan urinib ko‘ring.")
-
 
 async def video_all(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
@@ -698,7 +696,6 @@ async def add_department_employee(message: types.Message, command: CommandObject
         await message.reply(f"❌ Xatolik: {e}")
 
 
-
 # 🔍 API dan xodimlarni olish
 def fetch_employees():
     headers = {"Authorization": f"Bearer {API_TOKEN}"}
@@ -780,6 +777,41 @@ def get_weather_api():
     )
     return text
 
+def get_weather_two(city: str = "Samarqand"):
+    url = f"http://api.weatherapi.com/v1/current.json"
+    params = {
+        "key": WEATHER_API_KEY_ONE,
+        "q": city,
+        "aqi": "yes"
+    }
+    resp = requests.get(url, params=params, timeout=10)
+    data = resp.json()
+
+    location = data["location"]["name"]
+    country = data["location"]["country"]
+    temp_c = data["current"]["temp_c"]
+    condition = data["current"]["condition"]["text"]
+    humidity = data["current"]["humidity"]
+    wind_kph = data["current"]["wind_kph"]
+    feelslike = data["current"]["feelslike_c"]
+
+    text = (
+        f"📍 {location}, {country}\n"
+        f"🌡 Harorat: {temp_c}°C\n"
+        f"🤔 His qilinadi: {feelslike}°C\n"
+        f"☁️ Holat: {condition}\n"
+        f"💧 Namlik: {humidity}%\n"
+        f"💨 Shamol: {wind_kph} km/h"
+    )
+    return text
+
+@router.message(F.text == "/obhavo_api2")
+async def weather_handler(message: types.Message):
+    try:
+        weather_text = get_weather_two("Samarqand")
+        await message.answer(weather_text)
+    except Exception as e:
+        await message.answer("❌ Ob-havoni olishda xatolik yuz berdi.")
 
 # 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
 def get_birthdays():
@@ -795,7 +827,7 @@ def get_birthdays():
             info = {
                 "full_name": emp["full_name"],
                 "department": emp["department"]["name"] if emp.get("department") else "",
-                "image": emp.get("image")
+                "image": emp.get("image")  # URL yoki local path bo‘lishi mumkin
             }
             if birth_date == today:
                 birthdays_today.append(info)
@@ -809,24 +841,41 @@ def get_birthdays():
 # 📤 Adminni tug‘ilgan kunlar bilan ogohlantirish
 async def send_birthday_notifications():
     birthdays_today, birthdays_tomorrow = get_birthdays()
-
-    msg = "🎂 <b>Tug‘ilgan kunlar haqida xabar</b>\n\n"
-
+    
     if birthdays_today:
-        msg += "✅ <b>Bugun:</b>\n"
         for emp in birthdays_today:
-            msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
+            full_name = emp["full_name"]
+            department = emp["department"]
+
+            caption = f"""
+            🎂 <b>Tug‘ilgan kuningiz muborak bo‘lsin!</b>\n\n🏛 Muhammad al-Xorazmiy nomidagi Toshkent axborot texnologiyalari universiteti  Samarqand filiali "{department}" kafedrasi xodimi <b>{full_name}</b> sizni tavallud ayyomingiz bilan TATU Samarqand filiali ma'muriyati,  professor-o'qituvchilari, xodimlari hamda talabalari nomidan samimiy muborakbod etamiz!\n\n🎁 Sizga mustahkam sog‘lik, oilaviy baxt, uzoq umr, sihat-salomatlik, yosh avlodni tarbiyalashdagi xizmatlaringizda yanada katta muvaffaqiyatlar tilaymiz!\n\n💐 Ilmiy-ijodiy ishlaringizda doimo ulkan zafarlar tilaymiz.\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+
+            if emp.get("image"):
+                await bot.send_photo(
+                    chat_id=ADMIN_ID,
+                    photo=emp["image"],  # URL bo‘lsa to‘g‘ridan-to‘g‘ri
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+            else:
+                await bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=caption,
+                    parse_mode="HTML"
+                )
 
     if birthdays_tomorrow:
-        msg += "📌 <b>Ertaga:</b>\n"
+        msg = "📌 <b>Ertaga tug‘ilgan kunlar:</b>\n\n"
         for emp in birthdays_tomorrow:
             msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
+        await bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="HTML")
 
     if not birthdays_today and not birthdays_tomorrow:
-        msg += "❌ Bugun va ertaga tug‘ilgan kun yo‘q."
-
-    await bot.send_message(chat_id=ADMIN_ID, text=msg)
-
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text="❌ Bugun va ertaga tug‘ilgan kun yo‘q.",
+            parse_mode="HTML"
+        )
 
 # === Har kuni ertalab 07:00 da ishlaydigan funksiya ===
 async def morning_job():
@@ -864,7 +913,6 @@ async def morning_job():
         )
 
 
-
 @router.message(F.text == "/obhavo")
 async def obhavo_command(message: types.Message):
     text = get_weather()
@@ -883,12 +931,8 @@ async def test_command(message: types.Message):
 
     await message.answer("⏳ Test boshlanmoqda...")
     await send_birthday_notifications()
-    await morning_job()
+    # await morning_job()
     await message.answer("✅ Test tugadi, kanal va admin xabarlarni oldi.")
-
-
-
-
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
