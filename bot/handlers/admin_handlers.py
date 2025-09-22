@@ -848,7 +848,7 @@ async def send_birthday_notifications():
             kafedra = emp["kafedra"]
 
             caption = f"""
-            Bugun"{department}" {kafedra} xodimi <b>{full_name}</b>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+            Bugun"{department}" {kafedra} xodimi <i>{full_name}</i>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
 
             if emp.get("image"):
                 await bot.send_photo(
