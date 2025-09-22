@@ -10,6 +10,7 @@ from database.db import (
     delete_department, edit_employee, delete_employee)
 from utils.auth import is_admin
 import os
+import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 image_path = os.path.join(BASE_DIR, "images", "sunny.jpg")
@@ -20,7 +21,7 @@ import requests
 from bs4 import BeautifulSoup
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-TOKEN = "6239778268:AAFmIdsNKmjzMFRbVodT74TU0Dl1boR5ivE"
+TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
 
 bot = Bot(
     token=TOKEN,
@@ -30,7 +31,7 @@ bot = Bot(
 ADMIN_ID = 1421622919
 WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
 CITY = "Samarqand"
-API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=teacher"
+API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
 API_TOKEN = "Y-R36P1BY-eLfuCwQbcbAlvt9GAMk-WP"
 
 WEATHER_API_KEY_ONE = "65484c016bd4407dbff62042251009" 
@@ -696,122 +697,109 @@ async def add_department_employee(message: types.Message, command: CommandObject
         await message.reply(f"❌ Xatolik: {e}")
 
 
-# 🔍 API dan xodimlarni olish
+
 def fetch_employees():
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    res = requests.get(API_URL, headers=headers).json()
+    all_employees = []
 
-    if isinstance(res, dict):
-        return res.get("data", {}).get("items", [])
-    elif isinstance(res, list):
-        return res
-    return []
+    for i in range(1, 23):  # 22 ta sahifa bor
+        API_URL = f"https://student.samtuit.uz/rest/v1/data/employee-list?type=all&page={i}"
+        headers = {"Authorization": f"Bearer {API_TOKEN}"}
+        res = requests.get(API_URL, headers=headers).json()
+        data = res.get("data", {})
 
-def get_weather():
-    url = "https://obhavo.uz/samarkand"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(url, headers=headers)
-    soup = BeautifulSoup(res.text, "html.parser")
+        if isinstance(data, dict):
+            items = data.get("items", [])
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = []
 
-    # Shahar nomi va sana
-    city = soup.find("h2").get_text(strip=True)
-    date = soup.find("div", class_="current-day").get_text(strip=True)
+        all_employees.extend(items)
+    return all_employees
 
-    # Haroratlar va umumiy holat
-    forecast = soup.find("div", class_="current-forecast")
-    day_temp = forecast.find_all("span")[1].get_text(strip=True)   # +33°
-    night_temp = forecast.find_all("span")[2].get_text(strip=True) # +23°
-    desc = soup.find("div", class_="current-forecast-desc").get_text(strip=True)
 
-    # Namlik, shamol, bosim
-    details = soup.find("div", class_="current-forecast-details")
-    col1 = details.find("div", class_="col-1").find_all("p")
-    col2 = details.find("div", class_="col-2").find_all("p")
 
-    humidity = col1[0].get_text(strip=True)
-    wind = col1[1].get_text(strip=True)
-    pressure = col1[2].get_text(strip=True)
 
-    moon = col2[0].get_text(strip=True)
-    sunrise = col2[1].get_text(strip=True)
-    sunset = col2[2].get_text(strip=True)
-
-    # Tong/Kun/Oqshom
-    times = soup.find("div", class_="current-forecast-day").find_all("div")
-    tong = times[0].find("p", class_="forecast").get_text(strip=True)
-    kun = times[1].find("p", class_="forecast").get_text(strip=True)
-    oqshom = times[2].find("p", class_="forecast").get_text(strip=True)
-
-    text = (
-        f"🌆 {city}\n"
-        f"📅 {date}\n\n"
-        f"☀️ {day_temp}   🌙 {night_temp}\n"
-        f"{desc}\n"
-        f"💧 {humidity}\n"
-        f"🌬 {wind}\n"
-        f"🔽 {pressure}\n\n"
-        f"🌙 {moon}\t 🌅 {sunrise}\t 🌇 {sunset}\n\n"
-        f"🌄 Tong: {tong} \t 🌞 Kun: {kun}\t 🌙 Oqshom: {oqshom}"
-    )
-
-    return text
-
-# # === Ob-havo olish funksiyasi ===
-def get_weather_api():
-    # url = f"https://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={WEATHER_API_KEY}&units=metric&lang=uz"
-    url = f"https://api.openweathermap.org/data/2.5/weather?q={CITY},UZ&appid={WEATHER_API_KEY}&units=metric&lang=uz"
-    res = requests.get(url).json()
-
-    temp = res['main']['temp']
-    desc = res['weather'][0]['description']
-    humidity = res['main']['humidity']
-    wind = res['wind']['speed']
-
-    text = (
-        f"🌤 <b>{CITY} ob-havo</b>\n\n"
-        f"🌡 Harorat: <b>{temp}°C</b>\n"
-        f"☁️ Holati: <b>{desc.capitalize()}</b>\n"
-        f"💧 Namlik: <b>{humidity}%</b>\n"
-        f"🌬 Shamol: <b>{wind} m/s</b>\n\n"
-        f"📅 {datetime.now().strftime('%d-%m-%Y')}"
-    )
-    return text
-
-def get_weather_two(city: str = "Samarqand"):
-    url = f"http://api.weatherapi.com/v1/current.json"
+def get_daily_average_weatherapi(city="Samarqand"):
+    url = "http://api.weatherapi.com/v1/forecast.json"
     params = {
         "key": WEATHER_API_KEY_ONE,
         "q": city,
-        "aqi": "yes"
+        "days": 1,
+        "aqi": "no",
+        "alerts": "no"
     }
-    resp = requests.get(url, params=params, timeout=10)
-    data = resp.json()
+    resp = requests.get(url, params=params, timeout=10).json()
 
-    location = data["location"]["name"]
-    country = data["location"]["country"]
-    temp_c = data["current"]["temp_c"]
-    condition = data["current"]["condition"]["text"]
-    humidity = data["current"]["humidity"]
-    wind_kph = data["current"]["wind_kph"]
-    feelslike = data["current"]["feelslike_c"]
+    location = resp["location"]["name"]
+    country = resp["location"]["country"]
+    forecast = resp["forecast"]["forecastday"][0]["day"]
 
-    text = (
-        f"📍 {location}, {country}\n"
-        f"🌡 Harorat: {temp_c}°C\n"
-        f"🤔 His qilinadi: {feelslike}°C\n"
-        f"☁️ Holat: {condition}\n"
-        f"💧 Namlik: {humidity}%\n"
-        f"💨 Shamol: {wind_kph} km/h"
+    avg_temp = forecast["avgtemp_c"]
+    max_temp = forecast["maxtemp_c"]
+    min_temp = forecast["mintemp_c"]
+    condition = forecast["condition"]["text"]
+    humidity = forecast["avghumidity"]
+
+    # Inglizcha → O‘zbekcha tarjima
+    condition_translations = {
+        "Sunny": "Quyoshli",
+        "Clear": "Ochiq osmon",
+        "Partly cloudy": "Qisman bulutli",
+        "Cloudy": "Bulutli",
+        "Overcast": "Qorong‘u osmon",
+        "Mist": "Tumanli",
+        "Fog": "Tuman",
+        "Rain": "Yomg‘ir",
+        "Light rain": "Yengil yomg‘ir",
+        "Moderate rain": "O‘rtacha yomg‘ir",
+        "Heavy rain": "Kuchli yomg‘ir",
+        "Snow": "Qor",
+        "Light snow": "Yengil qor",
+        "Heavy snow": "Kuchli qor",
+        "Thunderstorm": "Momaqaldiroq",
+        "Drizzle": "Mayda yomg‘ir"
+    }
+
+    condition_uz = condition_translations.get(condition, condition)
+
+    # Ob-havo rasmlari mapping
+    weather_images = {
+        "Sunny": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
+        "Clear": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
+        "Partly cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Overcast": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Light rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Moderate rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Snow": "https://pic.rutubelist.ru/video/2024-12-21/64/41/6441c162f6f67d0bb3a69ab136527cc0.jpg",
+        "Thunderstorm": "https://www.wwlp.com/wp-content/uploads/sites/26/2025/06/Getty-Thunderstorm.jpg?w=1280",
+    }
+
+    # Agar condition mappingda bo‘lmasa → default rasm
+    image_url = weather_images.get(condition, "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg")
+
+    # Chiroyli caption (uzbekcha holat bilan)
+    caption = (
+        "<b>OB➖HOVO</b>\n\n"
+        "🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n"
+        f"📍 <b>{location}, {country}</b>\n"
+        f"📅 <i>{datetime.now().strftime('%d-%m-%Y')}</i>\n\n"
+        f"🌡️ <b>O'rtacha: {avg_temp}°C</b>\n"
+        f"⬆️ Maks: {max_temp}°C   ⬇️ Min: {min_temp}°C\n"
+        f"☁️ Holat: <b>{condition_uz}</b>\n"
+        f"💧 Namlik: {humidity}%\n\n"
+        "Bizni kuzating👇\n"
+        "<a href='https://fb.com/sbtuit'>Facebook</a> | "
+        "<a href='https://t.me/sbtuit2005'>Telegram</a> | "
+        "<a href='https://instagram.com/sbtuit2005'>Instagram</a> | "
+        "<a href='https://bit.ly/2yw9MS9'>YouTube</a>\n"
     )
-    return text
 
-@router.message(F.text == "/obhavo_api2")
-async def weather_handler(message: types.Message):
-    try:
-        weather_text = get_weather_two("Samarqand")
-        await message.answer(weather_text)
-    except Exception as e:
-        await message.answer("❌ Ob-havoni olishda xatolik yuz berdi.")
+    return caption, image_url
+
+
 
 # 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
 def get_birthdays():
@@ -823,18 +811,29 @@ def get_birthdays():
 
     for emp in employees:
         try:
-            birth_date = datetime.fromtimestamp(emp["birth_date"]).strftime("%m-%d")
+            # Tug‘ilgan sanani timestampdan datetime ga aylantiramiz
+            timestamp = emp["birth_date"]
+            if timestamp > 1e12:
+                timestamp = timestamp/1000
+
+            birth_date = datetime.fromtimestamp(timestamp)
+            birth_md = birth_date.strftime("%m-%d")  # faqat oy-kun
+
             info = {
-                "full_name": emp["full_name"],
-                "department": emp["department"]["name"] if emp.get("department") else "",
-                "image": emp.get("image")  # URL yoki local path bo‘lishi mumkin
+                    "full_name": emp["full_name"],
+                    "department": emp["department"]["name"] if emp.get("department") else "",
+                    "kafedra": emp["structureType"]["name"] if emp.get("kafedra") else "",
+                    "birth_date": birth_date.strftime("%Y-%m-%d"),  # to‘liq sana
+                    "image": emp.get("image")
             }
-            if birth_date == today:
+
+            if birth_md == today:
                 birthdays_today.append(info)
-            elif birth_date == tomorrow:
+            elif birth_md == tomorrow:
                 birthdays_tomorrow.append(info)
+
         except Exception as e:
-            print(f"Xatolik: {e}")
+            pass
 
     return birthdays_today, birthdays_tomorrow
 
@@ -846,9 +845,10 @@ async def send_birthday_notifications():
         for emp in birthdays_today:
             full_name = emp["full_name"]
             department = emp["department"]
+            kafedra = emp["kafedra"]
 
             caption = f"""
-            🎂 <b>Tug‘ilgan kuningiz muborak bo‘lsin!</b>\n\n🏛 Muhammad al-Xorazmiy nomidagi Toshkent axborot texnologiyalari universiteti  Samarqand filiali "{department}" kafedrasi xodimi <b>{full_name}</b> sizni tavallud ayyomingiz bilan TATU Samarqand filiali ma'muriyati,  professor-o'qituvchilari, xodimlari hamda talabalari nomidan samimiy muborakbod etamiz!\n\n🎁 Sizga mustahkam sog‘lik, oilaviy baxt, uzoq umr, sihat-salomatlik, yosh avlodni tarbiyalashdagi xizmatlaringizda yanada katta muvaffaqiyatlar tilaymiz!\n\n💐 Ilmiy-ijodiy ishlaringizda doimo ulkan zafarlar tilaymiz.\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+            🎂 <b>Tug‘ilgan kuningiz muborak bo‘lsin!</b>\n\n🏛 Muhammad al-Xorazmiy nomidagi Toshkent axborot texnologiyalari universiteti  Samarqand filiali "{department}" {kafedra} xodimi <b>{full_name}</b> sizni tavallud ayyomingiz bilan TATU Samarqand filiali ma'muriyati,  professor-o'qituvchilari, xodimlari hamda talabalari nomidan samimiy muborakbod etamiz!\n\n🎁 Sizga mustahkam sog‘lik, oilaviy baxt, uzoq umr, sihat-salomatlik, yosh avlodni tarbiyalashdagi xizmatlaringizda yanada katta muvaffaqiyatlar tilaymiz!\n\n💐 Ilmiy-ijodiy ishlaringizda doimo ulkan zafarlar tilaymiz.\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
 
             if emp.get("image"):
                 await bot.send_photo(
@@ -877,51 +877,25 @@ async def send_birthday_notifications():
             parse_mode="HTML"
         )
 
-# === Har kuni ertalab 07:00 da ishlaydigan funksiya ===
-async def morning_job():
-    # Ob-havoni yuborish
-    weather_text = get_weather()
-    channels = await get_channels()
+async def obhavo_command_telegram():
+    caption, image_url = get_daily_average_weatherapi("Samarqand")
+    await bot.send_photo(
+        chat_id=ADMIN_ID,
+        photo=image_url,   # ob-havoga mos rasm
+        caption=caption,
+        parse_mode="HTML"
+    )
 
-    if not channels:
-        await bot.send_message(chat_id=ADMIN_ID, text="⚠️ Kanal ro'yxati bo'sh! Ob-havo faqat adminga yuborildi.")
-        return
-    
-    failed_channels = []
-    success = False
-    for name, link in channels:
-        if link.startswith("https://t.me/"):
-            chat_id = "@" + link.split("/")[-1]
-        else:
-            chat_id = link
-        try:
-            photo = FSInputFile(image_path)
-            await bot.send_photo(chat_id=chat_id, photo=photo, caption=weather_text)
-            success = True
-        except Exception as e:
-            print(f"{name} kanaliga yuborishda xatolik: {e}")
-            failed_channels.append(name)
-    if not success:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text="⚠️ Hech qaysi kanalga xabar yuborilmadi!"
-        )
-    elif failed_channels:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"⚠️ Quyidagi kanallarga xabar yuborilmadi:\n" + "\n".join(failed_channels)
-        )
-
-
-@router.message(F.text == "/obhavo")
-async def obhavo_command(message: types.Message):
-    text = get_weather()
-    await message.answer(text)
 
 @router.message(F.text == "/obhavo_api")
 async def obhavo_command(message: types.Message):
-    text = get_weather_api()
-    await message.answer(text)
+    caption, image_url = get_daily_average_weatherapi("Samarqand")
+    await bot.send_photo(
+        chat_id=ADMIN_ID,
+        photo=image_url,   # ob-havoga mos rasm
+        caption=caption,
+        parse_mode="HTML"
+    )
 
 # === /test komandasi ===
 @router.message(F.text == "/test")
@@ -931,7 +905,6 @@ async def test_command(message: types.Message):
 
     await message.answer("⏳ Test boshlanmoqda...")
     await send_birthday_notifications()
-    # await morning_job()
     await message.answer("✅ Test tugadi, kanal va admin xabarlarni oldi.")
 
 # Router yordamida handlerlarni ro'yxatga olish
