@@ -31,8 +31,8 @@ async def main():
     register_user_handlers(dp, bot)
 
     scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tashkent"))
-    scheduler.add_job(send_birthday_notifications, trigger='cron', hour=10, minute=51, misfire_grace_time=20)
-    scheduler.add_job(obhavo_command_telegram, trigger='cron', hour=10, minute=51, misfire_grace_time=30)
+    scheduler.add_job(send_birthday_notifications, trigger='cron', hour=8, minute=00, misfire_grace_time=20)
+    scheduler.add_job(obhavo_command_telegram, trigger='cron', hour=6, minute=0, misfire_grace_time=30)
     scheduler.start()
     
     try:
