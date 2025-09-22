@@ -848,7 +848,7 @@ async def send_birthday_notifications():
             kafedra = emp["kafedra"]
 
             caption = f"""
-            🎂 <b>Tug‘ilgan kuningiz muborak bo‘lsin!</b>\n\n🏛 Muhammad al-Xorazmiy nomidagi Toshkent axborot texnologiyalari universiteti  Samarqand filiali "{department}" {kafedra} xodimi <b>{full_name}</b> sizni tavallud ayyomingiz bilan TATU Samarqand filiali ma'muriyati,  professor-o'qituvchilari, xodimlari hamda talabalari nomidan samimiy muborakbod etamiz!\n\n🎁 Sizga mustahkam sog‘lik, oilaviy baxt, uzoq umr, sihat-salomatlik, yosh avlodni tarbiyalashdagi xizmatlaringizda yanada katta muvaffaqiyatlar tilaymiz!\n\n💐 Ilmiy-ijodiy ishlaringizda doimo ulkan zafarlar tilaymiz.\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+            Bugun"{department}" {kafedra} xodimi <b>{full_name}</b>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
 
             if emp.get("image"):
                 await bot.send_photo(
@@ -889,6 +889,9 @@ async def obhavo_command_telegram():
 
 @router.message(F.text == "/obhavo_api")
 async def obhavo_command(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
     caption, image_url = get_daily_average_weatherapi("Samarqand")
     await bot.send_photo(
         chat_id=ADMIN_ID,
@@ -900,6 +903,9 @@ async def obhavo_command(message: types.Message):
 # === /test komandasi ===
 @router.message(F.text == "/test")
 async def test_command(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
     if str(message.from_user.id) != str(ADMIN_ID):
         return await message.answer("⛔ Bu buyruq faqat admin uchun!")
 
