@@ -28,7 +28,7 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
-ADMIN_ID = 1421622919
+ADMIN_ID = 2004004762
 WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
 CITY = "Samarqand"
 API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
