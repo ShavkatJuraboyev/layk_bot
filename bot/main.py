@@ -11,7 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 BOT_TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
 
 CHANNEL_ID = "@kompyuter_programmalar_dasturlar"     # ob-havo va tug‘ilgan kun xabarlari uchun kanal
-ADMIN_ID = 1421622919           # Adminning Telegram ID si
+ADMIN_ID = 2004004762           # Adminning Telegram ID si
 WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
 CITY = "Samarqand"
 API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
@@ -44,3 +44,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
