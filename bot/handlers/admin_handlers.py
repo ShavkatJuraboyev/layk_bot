@@ -28,7 +28,7 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
-ADMIN_ID = 2004004762
+ADMIN_ID = 2004004762 
 WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
 CITY = "Samarqand"
 API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
@@ -911,7 +911,7 @@ async def test_command(message: types.Message):
 
     await message.answer("⏳ Test boshlanmoqda...")
     await send_birthday_notifications()
-    await message.answer("✅ Test tugadi, kanal va admin xabarlarni oldi.")
+    await message.answer("✅ Test tugadi.")
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
