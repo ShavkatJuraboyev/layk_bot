@@ -18,11 +18,12 @@ async def inline_share(query: InlineQuery, bot: Bot):
         _, _, photo_id = department
 
         caption = (
-            "🏛TATU SAMARQAND FILIALIDA ⚡️\"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET\" TYUTORI TANLOVIGA START BERILDI.\n\n"
-            "⭐️ \"Eng yaxshi fakultet\" tyutorini aniqlang!\n"
-            "🔴 Mazkur so‘rovnomada g‘olib bo‘lganlarga diplom va qimmat baho sovg‘alar topshiriladi.\n\n"
-            "❗️Eslatib o‘tamiz: So‘rovnomaning 3-maydan 9-mayga qadar 17:00gacha davom etadi.\n\n"
-            "🌐TATU Samarqand filiali axborot xizmati"
+            """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
+
+
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi."""
         )
 
         file_url = f"https://api.telegram.org/file/bot{bot.token}/{photo_id}"
@@ -31,7 +32,7 @@ async def inline_share(query: InlineQuery, bot: Bot):
             id="1",
             photo_url=file_url,
             thumb_url=file_url,
-            title="Eng yaxshi fakultet tyutorini aniqlang!",
+            title="ENG NA'MUNALI GURUH SARDORI aniqlang!",
             description="Ushbu postni do‘stlaringiz bilan ulashing",
             caption=caption,
             reply_markup=InlineKeyboardMarkup(
