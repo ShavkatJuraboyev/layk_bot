@@ -26,7 +26,7 @@ async def start_handler(message: types.Message, bot: Bot):
     
     if is_member:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+        photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -42,14 +42,12 @@ async def start_handler(message: types.Message, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
+            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
 
 
-⭐️ "Eng yaxshi fakultet"Dekan o'rinborsarini aniqlang!
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -74,7 +72,7 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
     if is_member:
         await callback.message.answer("Tabriklayman! Siz barcha kanallarga a'zo bo'ldingiz")
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+        photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
         if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
             departments = await get_departments()
 
@@ -90,14 +88,12 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
+            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
 
 
-⭐️ "Eng yaxshi fakultet"Dekan o'rinborsarini aniqlang!
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
         else:
             await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -147,14 +143,12 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
     buttons.append([types.InlineKeyboardButton(text="🔙 Ortga", callback_data="back_to_departments")])
 
     caption = (
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
+        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
 
 
-⭐️ "Eng yaxshi fakultet"Dekan o'rinborsarini aniqlang!
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  19-maydan  24-maygacha  davom etadi."""
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi."""
     )
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -189,14 +183,12 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
         ])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     caption = (
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
+        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
 
 
-⭐️ "Eng yaxshi fakultet"Dekan o'rinborsarini aniqlang!
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  19-maydan  24-maygacha  davom etadi."""
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi."""
     )
 
     # 1. Kanalga yuborish
@@ -289,7 +281,7 @@ async def employee_handle_likes(callback: types.CallbackQuery):
 async def back_to_departmenys(callback: types.CallbackQuery):
     departments = await get_departments()
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-    photo_path = os.path.join(base_dir, "rasm", "rasm1.jpg")
+    photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
     photo = FSInputFile(photo_path)
 
     buttons = [
@@ -298,14 +290,12 @@ async def back_to_departmenys(callback: types.CallbackQuery):
     ]
     # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORGAN FAKULTET" DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
+    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
 
 
-⭐️ "Eng yaxshi fakultet"Dekan o'rinborsarini aniqlang!
+⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.
-
-❗️Eslatib o‘tamiz: So‘rovnomaning  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
+🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
     await callback.message.delete()
 
 async def like_videos(callback: types.CallbackQuery):
