@@ -7,7 +7,7 @@ from database.db import (
     get_channels, get_departments, get_employees, 
     add_department, add_employee, delete_channel, 
     edit_channel, edit_video, delete_video, edit_department, 
-    delete_department, edit_employee, delete_employee, delete_likes)
+    delete_department, edit_employee, delete_employee, delete_like)
 from utils.auth import is_admin
 import os
 import requests
@@ -914,13 +914,13 @@ async def test_command(message: types.Message):
     await message.answer("✅ Test tugadi.")
 
 
-async def delete_likess(callback: types.CallbackQuery):
+async def delete_likes(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
         await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
         await callback.message.delete()
         return
 
-    await delete_likes()  # 👈 TO‘G‘RI CHAQRUV
+    await delete_like()  # 👈 TO‘G‘RI CHAQRUV
 
     await callback.message.answer("✅ Barcha like'lar muvaffaqiyatli o‘chirildi!")
     await callback.message.delete()
@@ -1061,6 +1061,6 @@ def register_admin_handlers(dp: Dispatcher, bot: Bot):
     router.message.register(add_department_employee, Command("add_dep_emp"))
 
     router.callback_query.register(
-        delete_likess,
+        delete_likes,
         lambda c: c.data and c.data.startswith("delete_likes")
     )
