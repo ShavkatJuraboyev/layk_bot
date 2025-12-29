@@ -42,23 +42,18 @@ async def start_handler(message: types.Message, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-<<<<<<< HEAD
-            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORAYOTGAN FAKULTET DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
-=======
-            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
-⭐️ Eng yaxshi faoliyat olib borayotgan fakultet dekan o'rinborsarini aniqlang!
+🏆 1-bosqich - fakultet kesimida.
+🏆 2-bosqich - filial kesimida.
+                                       
+‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
-<<<<<<< HEAD
-🔴 Mazkur so‘rovnomada g'olib bo'lganlar diplom va esdalik sovg'alar bilan taqdirlanadi.
+✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-❗️Eslatib o‘tamiz: So‘rovnoma:  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
-=======
-⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -99,23 +94,18 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-<<<<<<< HEAD
-            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORAYOTGAN FAKULTET DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
-=======
-            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
-⭐️ Eng yaxshi faoliyat olib borayotgan fakultet dekan o'rinborsarini aniqlang!
+🏆 1-bosqich - fakultet kesimida.
+🏆 2-bosqich - filial kesimida.
+                                       
+‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
-<<<<<<< HEAD
-🔴 Mazkur so‘rovnomada g'olib bo'lganlar diplom va esdalik sovg'alar bilan taqdirlanadi.
+✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-❗️Eslatib o‘tamiz: So‘rovnoma:  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
-=======
-⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
             await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -165,23 +155,18 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
     buttons.append([types.InlineKeyboardButton(text="🔙 Ortga", callback_data="back_to_departments")])
 
     caption = (
-<<<<<<< HEAD
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORAYOTGAN FAKULTET DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
-=======
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+        """🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
-⭐️ Eng yaxshi faoliyat olib borayotgan fakultet dekan o'rinborsarini aniqlang!
+🏆 1-bosqich - fakultet kesimida.
+🏆 2-bosqich - filial kesimida.
+                                       
+‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
-<<<<<<< HEAD
-🔴 Mazkur so‘rovnomada g'olib bo'lganlar diplom va esdalik sovg'alar bilan taqdirlanadi.
+✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-❗️Eslatib o‘tamiz: So‘rovnoma:  19-maydan  24-maygacha  davom etadi."""
-=======
-⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi."""
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -216,23 +201,18 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
         ])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     caption = (
-<<<<<<< HEAD
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORAYOTGAN FAKULTET DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
-=======
-        """🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+        """🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
-⭐️ Eng yaxshi faoliyat olib borayotgan fakultet dekan o'rinborsarini aniqlang!
+🏆 1-bosqich - fakultet kesimida.
+🏆 2-bosqich - filial kesimida.
+                                       
+‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
-<<<<<<< HEAD
-🔴 Mazkur so‘rovnomada g'olib bo'lganlar diplom va esdalik sovg'alar bilan taqdirlanadi.
+✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-❗️Eslatib o‘tamiz: So‘rovnoma:  19-maydan  24-maygacha  davom etadi."""
-=======
-⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi."""
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
 
     # 1. Kanalga yuborish
@@ -334,23 +314,18 @@ async def back_to_departmenys(callback: types.CallbackQuery):
     ]
     # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-<<<<<<< HEAD
-    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG YAXSHI FAOLIYAT OLIB BORAYOTGAN FAKULTET DEKAN O'RINBOSARI TANLOVIGA START BERILDI.
-=======
-    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA ⚡️"ENG NA'MUNALI GURUH SARDORI"  TANLOVIGA START BERILDI.
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
-⭐️ Eng yaxshi faoliyat olib borayotgan fakultet dekan o'rinborsarini aniqlang!
+🏆 1-bosqich - fakultet kesimida.
+🏆 2-bosqich - filial kesimida.
+                                       
+‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
-<<<<<<< HEAD
-🔴 Mazkur so‘rovnomada g'olib bo'lganlar diplom va esdalik sovg'alar bilan taqdirlanadi.
+✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-❗️Eslatib o‘tamiz: So‘rovnoma:  19-maydan  24-maygacha  davom etadi.""", reply_markup=keyboard)
-=======
-⭐️ "ENG NA'MUNALI GURUH SARDORI"  aniqlang!
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-🔴  Mazkur so‘rovnomada g'olib bo'lganlarga diplom va esdalik sovg'alar topshiriladi.""", reply_markup=keyboard)
->>>>>>> 7691464b1a1100bdcfa3fc7af0ae1283a53453c4
+✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
     await callback.message.delete()
 
 async def like_videos(callback: types.CallbackQuery):
