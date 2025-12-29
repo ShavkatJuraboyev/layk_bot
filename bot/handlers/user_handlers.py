@@ -51,7 +51,6 @@ async def start_handler(message: types.Message, bot: Bot):
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-
 ✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
@@ -101,7 +100,6 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
 ‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
 
 ✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
@@ -162,7 +160,6 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-
 ✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
 
@@ -206,7 +203,6 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
 ‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
 
 ✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
@@ -318,7 +314,6 @@ async def back_to_departmenys(callback: types.CallbackQuery):
 ‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
 
 ✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
     await callback.message.delete()
