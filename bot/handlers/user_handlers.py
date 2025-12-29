@@ -212,7 +212,7 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
 
     # 1. Kanalga yuborish
@@ -325,7 +325,7 @@ async def back_to_departmenys(callback: types.CallbackQuery):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
     await callback.message.delete()
 
 async def like_videos(callback: types.CallbackQuery):

@@ -29,7 +29,7 @@ async def inline_share(query: InlineQuery, bot: Bot):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+✅ SSaralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
         )
 
         file_url = f"https://api.telegram.org/file/bot{bot.token}/{photo_id}"
