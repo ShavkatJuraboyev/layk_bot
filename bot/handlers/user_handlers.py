@@ -210,7 +210,7 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
     # 1. Kanalga yuborish
     try:
         await bot.send_photo(
-            chat_id='@sbtuit2005',  # o'zingizning kanal username'ini yozing (belgisiz!)
+            chat_id='@tatusfyoshlarittifoqi',  # o'zingizning kanal username'ini yozing (belgisiz!)
             photo=photo_id,
             caption=caption,
             reply_markup=keyboard
