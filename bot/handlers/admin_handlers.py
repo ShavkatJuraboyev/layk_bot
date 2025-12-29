@@ -7,7 +7,7 @@ from database.db import (
     get_channels, get_departments, get_employees, 
     add_department, add_employee, delete_channel, 
     edit_channel, edit_video, delete_video, edit_department, 
-    delete_department, edit_employee, delete_employee)
+    delete_department, edit_employee, delete_employee, delete_likes)
 from utils.auth import is_admin
 import os
 import requests
@@ -47,7 +47,8 @@ async def admin_start(message: types.Message, bot: Bot):
         types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"all_channels")],
         [types.InlineKeyboardButton(text="🗣 Bo'limlar", callback_data=f"all_department"),
         types.InlineKeyboardButton(text="👬 Xodimlar", callback_data=f"all_employee")],
-        [types.InlineKeyboardButton(text="🎥 Talaba videolari", callback_data=f"all_video")]
+        [types.InlineKeyboardButton(text="🎥 Talaba videolari", callback_data=f"all_video"),
+         types.InlineKeyboardButton(text="Like delete", callback_data=f"delete_likes")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await message.answer(text="Quydagilardan birini tanlang", reply_markup=keyboard)
@@ -63,7 +64,8 @@ async def admin_start_back(callback: types.CallbackQuery):
         types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"all_channels")],
         [types.InlineKeyboardButton(text="🗣 Bo'limlar", callback_data=f"all_department"),
         types.InlineKeyboardButton(text="👬 Xodimlar", callback_data=f"all_employee")],
-        [types.InlineKeyboardButton(text="🎥 Talaba videolari", callback_data=f"all_video")]
+        [types.InlineKeyboardButton(text="🎥 Talaba videolari", callback_data=f"all_video"),
+         types.InlineKeyboardButton(text="Like delete", callback_data=f"delete_likes")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.answer(text="Quydagilardan birini tanlang", reply_markup=keyboard)
@@ -719,7 +721,6 @@ def fetch_employees():
 
 
 
-
 def get_daily_average_weatherapi(city="Samarqand"):
     url = "http://api.weatherapi.com/v1/forecast.json"
     params = {
@@ -798,7 +799,6 @@ def get_daily_average_weatherapi(city="Samarqand"):
     )
 
     return caption, image_url
-
 
 
 # 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
@@ -912,6 +912,19 @@ async def test_command(message: types.Message):
     await message.answer("⏳ Test boshlanmoqda...")
     await send_birthday_notifications()
     await message.answer("✅ Test tugadi.")
+
+
+async def delete_likess(callback: types.CallbackQuery):
+    if not is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        await callback.message.delete()
+        return
+
+    await delete_likes()  # 👈 TO‘G‘RI CHAQRUV
+
+    await callback.message.answer("✅ Barcha like'lar muvaffaqiyatli o‘chirildi!")
+    await callback.message.delete()
+
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
@@ -1046,3 +1059,8 @@ def register_admin_handlers(dp: Dispatcher, bot: Bot):
 
 
     router.message.register(add_department_employee, Command("add_dep_emp"))
+
+    router.callback_query.register(
+        delete_likess,
+        lambda c: c.data and c.data.startswith("delete_likes")
+    )
