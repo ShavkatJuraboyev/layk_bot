@@ -914,15 +914,18 @@ async def test_command(message: types.Message):
     await message.answer("✅ Test tugadi.")
 
 
+@router.callback_query(F.data == "delete_likes")
 async def delete_likes(callback: types.CallbackQuery):
     if not is_admin(callback.message.chat.id):
         await callback.answer("❌ Faqat adminlar uchun!", show_alert=True)
         return
 
     await delete_all_employee_likes()  # 👈 ASOSIY JOY
-
     await callback.message.answer("✅ Barcha like'lar bazadan o‘chirildi!")
     await callback.message.delete()
+    return
+
+    
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
@@ -1057,8 +1060,3 @@ def register_admin_handlers(dp: Dispatcher, bot: Bot):
 
 
     router.message.register(add_department_employee, Command("add_dep_emp"))
-
-    router.callback_query.register(
-        delete_likes,
-        lambda c: c.data and c.data.startswith("delete_likes")
-    )
