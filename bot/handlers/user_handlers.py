@@ -53,7 +53,7 @@ async def start_handler(message: types.Message, bot: Bot):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -105,7 +105,7 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
         else:
             await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -166,7 +166,7 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
 
 Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
 
-✅ Saralash bosqichi 24-dekabr 23:59ga qadar davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
     )
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -218,7 +218,7 @@ Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
     # 1. Kanalga yuborish
     try:
         await bot.send_photo(
-            chat_id='@python_dasturlash1',  # o'zingizning kanal username'ini yozing (belgisiz!)
+            chat_id='@sbtuit2005',  # o'zingizning kanal username'ini yozing (belgisiz!)
             photo=photo_id,
             caption=caption,
             reply_markup=keyboard
