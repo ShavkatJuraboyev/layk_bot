@@ -27,8 +27,6 @@ async def inline_share(query: InlineQuery, bot: Bot):
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
 ✅ SSaralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
         )
 
