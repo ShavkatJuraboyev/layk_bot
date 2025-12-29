@@ -333,11 +333,12 @@ async def get_users():
         print(f"Error getting employees: {e}")
         return []
     
-    
-async def delete_like():
+
+async def delete_all_employee_likes():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("DELETE FROM emplyee_likes")
+            cursor = await db.execute("DELETE FROM emplyee_likes")
+            print("O‘chirilgan like soni:", cursor.rowcount)
             await db.commit()
     except Exception as e:
-        print(f"Error deleting likes: {e}")
+        print(f"Error deleting employee likes: {e}")
