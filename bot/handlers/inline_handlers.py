@@ -18,16 +18,18 @@ async def inline_share(query: InlineQuery, bot: Bot):
         _, _, photo_id = department
 
         caption = (
-            """🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+            """🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ SSaralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi"""
         )
 
         file_url = f"https://api.telegram.org/file/bot{bot.token}/{photo_id}"

@@ -42,16 +42,18 @@ async def start_handler(message: types.Message, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+            await message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
         else:
             await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -92,16 +94,18 @@ async def check_memberships(callback: types.CallbackQuery, bot: Bot):
             # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
             photo = FSInputFile(photo_path)
-            await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+            await callback.message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
         else:
             await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
             return
@@ -151,16 +155,18 @@ async def employee_like(callback: types.CallbackQuery, bot: Bot):
     buttons.append([types.InlineKeyboardButton(text="🔙 Ortga", callback_data="back_to_departments")])
 
     caption = (
-        """🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+        """🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi"""
     )
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -195,16 +201,18 @@ async def forward_view(callback: types.CallbackQuery, bot: Bot):
         ])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     caption = (
-        """🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+        """🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi."""
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi"""
     )
 
     # 1. Kanalga yuborish
@@ -306,16 +314,18 @@ async def back_to_departmenys(callback: types.CallbackQuery):
     ]
     # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo, caption="""🏛TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
+    await callback.message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
 
 🏆 1-bosqich - fakultet kesimida.
 🏆 2-bosqich - filial kesimida.
-                                       
-‼️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
+
+❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
 
 ✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
 
-✅ Saralash bosqichi 30-dekabr 12:00ga qadar Telekommunikatsiya texnologiyalari va kasb-ta'limi fakulteti guruh sardorlari o'rtasida davom etadi. 250 tadan ko'p ovoz to'plagan guruh sardori FINAL bosqichiga chiqadi.""", reply_markup=keyboard)
+Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
+
+✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
     await callback.message.delete()
 
 async def like_videos(callback: types.CallbackQuery):
