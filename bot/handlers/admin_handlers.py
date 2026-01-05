@@ -605,21 +605,6 @@ async def send_dep_preview(cb: CallbackQuery, bot: Bot):
 
 
 
-def normalize_chat_name(chat_name: str | None):
-    if not chat_name:
-        return None
-
-    chat_name = chat_name.strip()
-
-    if chat_name.startswith("https://t.me/"):
-        chat_name = chat_name.replace("https://t.me/", "")
-
-    if not chat_name.startswith("@"):
-        chat_name = f"@{chat_name}"
-
-    return chat_name
-
-
 
 # -------------------------
 # 4️⃣ Kanalga yuborish
@@ -657,7 +642,7 @@ async def send_channel(cb: CallbackQuery, bot: Bot):
         )
 
         for ch in channels:
-            chat_name = normalize_chat_name(ch[1])
+            chat_name = '@tatusfyoshlarittifoqi'
             if not chat_name:
                 continue
 
@@ -697,7 +682,7 @@ async def vote_candidate(cb: CallbackQuery, bot: Bot):
     channels = await db.get_channels()
 
     for ch in channels:
-        chat_name = normalize_chat_name(ch[1])
+        chat_name = chat_name = '@tatusfyoshlarittifoqi'
         if not chat_name:
             continue   # ⬅️ MUHIM
 
