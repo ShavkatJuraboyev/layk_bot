@@ -103,7 +103,7 @@ async def show_departments(msg: Message):
                 for dep_id, name in active_deps
             ]
         )
-        await msg.answer("📌 Faol bo‘limlarni tanlang va ovoz bering:", reply_markup=kb_active)
+        await msg.answer("🗣 Ovoz bering:", reply_markup=kb_active)
     
     # Tugagan bo'limlar natijalari tugmasi
     if closed_deps:
