@@ -1,425 +1,226 @@
-from aiogram import types, Router, Dispatcher, Bot
+from aiogram import Router, F, Bot, Dispatcher
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
-from database.db import get_channels, get_videos, like_video, get_departments, get_employees_by_department, like_employee, get_employees
+from aiogram.fsm.context import FSMContext
+import database.db as db
 from utils.membership import check_membership
-from aiogram.types import InputFile, FSInputFile
-import os
-from utils.auth import is_admin
 
-router = Router()  # Router yaratish
+router = Router()
 
+# ==========================
+# /start
+# ==========================
+@router.message(Command("start"))
+async def start(msg: Message, bot: Bot, state: FSMContext):
+    user_id = msg.from_user.id
+    await db.add_user(user_id)
 
-# /start komanda handleri
-async def start_handler(message: types.Message, bot: Bot):
-    # Kanallarni bazadan olish
-    channels = await get_channels()
-    # Foydalanuvchini barcha kanallarga tekshirish
-    user_id = message.from_user.id
-    is_member = all(
-        [await check_membership(bot, link.split("/")[-1], user_id) for _, link in channels]
-    )
-
-    if not is_member:
-        buttons = [[types.InlineKeyboardButton(text=name, url=link)] for name, link in channels]
-        buttons.append([types.InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_memberships")])
-        return await message.answer("Quyidagi kanallarga a'zo bo'ling va tekshiring 👇", reply_markup=types.InlineKeyboardMarkup(inline_keyboard=buttons))
-    
-    if is_member:
-        base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
-        if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
-            departments = await get_departments()
-
-            if not departments:  
-                await message.answer("❌ Hozircha ovozberish mavjud emas.")
-                return
-
-            # Inline tugmalar orqali deparmentlarni ro'yxatini ko'rsatish
-            buttons = [[
-                types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
-                for department_id, department_name, _ in departments
-            ]
-            # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
-            keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-            photo = FSInputFile(photo_path)
-            await message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
-
-🏆 1-bosqich - fakultet kesimida.
-🏆 2-bosqich - filial kesimida.
-
-❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
-
-✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
-✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
+    # Start page
+    start_page = await db.get_start_page()
+    if start_page:
+        photo_id, caption = start_page
+        if photo_id:
+            await msg.answer_photo(photo_id, caption=caption)
         else:
-            await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
-            return
-        
+            await msg.answer(caption or "Xush kelibsiz!")
     else:
-        # Agar foydalanuvchi hali kanallarga a'zo bo'lmagan bo'lsa
-        buttons = [[
-            types.InlineKeyboardButton(text=name, url=link)] 
-            for name, link in channels
-            ]
-        buttons.append([types.InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_memberships")])
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-        await message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.\nBotdan foydalanish uchun avval quyidagi kanallarga a'zo bo'ling va \"Tekshirish\" tugmasini bosing:", reply_markup=keyboard)
+        await msg.answer("Xush kelibsiz! Botga xush kelibsiz!")
 
-async def check_memberships(callback: types.CallbackQuery, bot: Bot):
-    channels = await get_channels()
-    # Foydalanuvchini barcha kanallarga tekshirish
-    user_id = callback.message.chat.id
-    is_member = all(
-        [await check_membership(bot, link.split("/")[-1], user_id) for _, link in channels]
-    )
-    if is_member:
-        await callback.message.answer("Tabriklayman! Siz barcha kanallarga a'zo bo'ldingiz")
-        base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-        photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
-        if os.path.exists(photo_path):  # Fayl mavjudligini tekshirish
-            departments = await get_departments()
+    # Kanal tekshirish
+    channels = await db.get_channels()
+    if channels:
+        all_membership = []
+        for ch in channels:
+            ch_id, chat_id, name, link = ch
+            is_member = await check_membership(bot, link, user_id)
+            all_membership.append(is_member)
 
-            if not departments:  
-                await callback.message.answer("❌ Hozircha ovozberish mavjud emas.")
-                return
-
-            # Inline tugmalar orqali deparmentlarni ro'yxatini ko'rsatish
-            buttons = [[
-                types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
-                for department_id, department_name, _ in departments
-            ]
-            # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
-            keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-            photo = FSInputFile(photo_path)
-            await callback.message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
-
-🏆 1-bosqich - fakultet kesimida.
-🏆 2-bosqich - filial kesimida.
-
-❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
-
-✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
-✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
+        if all(all_membership):
+            # Agar foydalanuvchi barcha kanallarga a'zo bo'lsa
+            await show_departments(msg)
         else:
-            await callback.message.answer("👋 Assalomu alaykum ovoz berish botiga xush kelibsiz.")
-            return
-        await callback.message.delete()
+            # Agar foydalanuvchi hali hammasiga a'zo bo'lmasa
+            buttons = [[InlineKeyboardButton(text=ch[2], url=ch[3])] for ch in channels]
+            buttons.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_membership")])
+            await msg.answer(
+                "Ovoz berishdan oldin quyidagi kanallarga a’zo bo‘ling va tekshirish tugmasini bosing 👇",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+            )
     else:
-        # Agar foydalanuvchi hali kanallarga a'zo bo'lmagan bo'lsa
-        buttons = [[
-            types.InlineKeyboardButton(text=name, url=link)]
-             for name, link in channels
-             ]
-        buttons.append([types.InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_memberships")])
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-        await callback.message.answer("❌ Avval quyidagi kanallarga a'zo bo'ling va \"Tekshirish\" tugmasini bosing:", reply_markup=keyboard)
-        await callback.message.delete()
+        await show_departments(msg)
 
+# ==========================
+# Tekshirish tugmasi
+# ==========================
+@router.callback_query(lambda cb: cb.data == "check_membership")
+async def check_cb(cb: CallbackQuery, bot: Bot):
+    user_id = cb.from_user.id
+    channels = await db.get_channels()
+    if not channels:
+        await cb.message.answer("⚠️ Majburiy kanallar mavjud emas.")
+        await show_departments(cb.message)
+        return
 
-async def employee_like(callback: types.CallbackQuery, bot: Bot):
-    department_id = int(callback.data.split("_")[1])
-    departments = await get_departments()
-    department = next((d for d in departments if d[0] == department_id), None)
-    if not department:
-        return await callback.answer("Bo‘lim topilmadi!")
+    all_membership = []
+    for ch in channels:
+        ch_id, chat_id, name, link = ch
+        is_member = await check_membership(bot, link, user_id)
+        all_membership.append(is_member)
 
-    _, _, photo_id = department
-    employees = await get_employees_by_department(department_id)
+    if all(all_membership):
+        await cb.message.answer("✅ Siz barcha majburiy kanallarga a’zosiz! Endi ovoz berishingiz mumkin.")
+        await show_departments(cb.message)
+    else:
+        await cb.message.answer("⚠️ Siz hali barcha kanallarga a’zo emassiz. Iltimos, qo‘shiling va qayta tekshiring.")
 
-    bot_info = await bot.get_me()
-    bot_username = bot_info.username
+# ==========================
+# Bo'limlarni ko'rsatish
+# ==========================
+# ==========================
+# Bo'limlarni ko'rsatish (faol va tugaganlarni ajratish)
+# ==========================
+async def show_departments(msg: Message):
+    deps = await db.get_departments(include_closed=True)
+    if not deps:
+        await msg.answer("Hozircha ovoz berishlar mavjud emas.")
+        return
 
-    buttons = []
+    active_deps = []
+    closed_deps = []
 
-    for emp_id, emp_name, likes, _, _ in employees:
-        buttons.append([
-            types.InlineKeyboardButton(
-                text=f"👤 {emp_name} ({likes})",
-                callback_data=f"employee_{emp_id}"
-            )
-        ])
+    for dep in deps:
+        dep_id, dep_name, dep_photo_id, dep_is_active = dep
+        if dep_is_active:  # ovoz berish muddati tugamagan bo'limlar
+            active_deps.append((dep_id, dep_name))
+        else:  # ovoz berish muddati tugagan bo'limlar
+            closed_deps.append((dep_id, dep_name))
 
-    if is_admin(callback.message.chat.id):
-        buttons.append([
-            types.InlineKeyboardButton(
-                text="📤 Kanalga yuborish",
-                callback_data=f"forward_department_{department_id}"
-            )
-    ])
-    buttons.append([types.InlineKeyboardButton(text="🔙 Ortga", callback_data="back_to_departments")])
-
-    caption = (
-        """🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
-
-🏆 1-bosqich - fakultet kesimida.
-🏆 2-bosqich - filial kesimida.
-
-❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
-
-✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
-✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi"""
-    )
-
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo_id, caption=caption, reply_markup=keyboard)
-    await callback.message.delete()
-
-@router.callback_query(lambda c: c.data and c.data.startswith("forward_department_"))
-async def forward_view(callback: types.CallbackQuery, bot: Bot):
-    if not is_admin(callback.from_user.id):
-        return await callback.answer("⛔ Bu tugma faqat adminlar uchun!")
-    
-    department_id = int(callback.data.split("_")[-1])
-    departments = await get_departments()
-    department = next((d for d in departments if d[0] == department_id), None)
-    if not department:
-        return await callback.answer("Bo‘lim topilmadi!")
-
-    _, _, photo_id = department
-    employees = await get_employees_by_department(department_id)
-    bot_info = await bot.get_me()
-    bot_username = bot_info.username
-
-    bot_info = await bot.get_me()
-    bot_username = bot_info.username
-
-    buttons = []
-
-    for emp_id, emp_name, like, _, _ in employees:
-        url = f"https://t.me/{bot_username}?start=emp_{emp_id}"
-        buttons.append([
-            types.InlineKeyboardButton(text=f"👤 {emp_name}", url=url)
-        ])
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    caption = (
-        """🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
-
-🏆 1-bosqich - fakultet kesimida.
-🏆 2-bosqich - filial kesimida.
-
-❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
-
-✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
-✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi"""
-    )
-
-    # 1. Kanalga yuborish
-    try:
-        await bot.send_photo(
-            chat_id='@tatusfyoshlarittifoqi',  # o'zingizning kanal username'ini yozing (belgisiz!)
-            photo=photo_id,
-            caption=caption,
-            reply_markup=keyboard
+    # Faol bo'limlar tugmasi
+    if active_deps:
+        kb_active = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=name, callback_data=f"vote_dep:{dep_id}")] 
+                for dep_id, name in active_deps
+            ]
         )
-    except Exception as e:
-        await callback.message.answer(f"❌ Kanalga yuborib bo‘lmadi: {e}")
-        return
-
-    # 2. Adminning o‘ziga yuborish
-    await bot.send_photo(
-        chat_id=callback.from_user.id,
-        photo=photo_id,
-        caption=caption,
-        reply_markup=keyboard
-    )
-
-    await callback.answer("✅ Xabar kanalga va sizga yuborildi.")
-    await callback.answer("✅ Forward uchun xabar tayyor!")
-
-
-async def employee_handler(callback: types.CallbackQuery):
-    if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
-        await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
-        return
+        await msg.answer("📌 Faol bo‘limlarni tanlang va ovoz bering:", reply_markup=kb_active)
     
-    # Callback ma'lumotlarini ajratish
-    data = callback.data.split("_")
-    employee_id = int(data[1])
-    employees = await get_employees()
-    employee = next((v for v in employees if v[0] == employee_id), None)
-    if not employee:  # Agar video topilmasa
-        await callback.answer("❌ ma'lumot topilmadi!")
+    # Tugagan bo'limlar natijalari tugmasi
+    if closed_deps:
+        kb_closed = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=name, callback_data=f"results_dep:{dep_id}")] 
+                for dep_id, name in closed_deps
+            ]
+        )
+        await msg.answer("📊 Ovoz berish muddati tugagan bo‘limlar natijalari:", reply_markup=kb_closed)
+
+
+# ==========================
+# Nomzodlarni ko'rsatish
+# ==========================
+@router.callback_query(F.data.startswith("vote_dep:"))
+async def show_candidates(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[1])
+    candidates = await db.get_candidates(dep_id)
+    if not candidates:
+        await cb.message.answer("Hozircha nomzodlar mavjud emas.")
         return
 
-    _, employee_name, likes, dislikes, department_id = employee
-    buttons = [
-        [types.InlineKeyboardButton(text=f"Ovoz berish", callback_data=f"like_{employee_id}")],
-        [types.InlineKeyboardButton(text="🔙 Ortga qaytish", callback_data=f"department_{department_id}")]
-    ]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer(text=employee_name, reply_markup=keyboard)
-    await callback.message.delete()
+    stats = await db.department_statistics(dep_id)
+    text = f"📌 Bo'lim nomzodlari:\n\n"
+    buttons = []
 
-# Like/dislike tugmalari uchun handler
-async def employee_handle_likes(callback: types.CallbackQuery):
-    if not callback.data:
-        await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
-        return
+    for c in candidates:
+        candidate_id, _, name, photo_id, video_id, caption = c
+        votes = next((v[1] for v in stats if v[0] == name), 0)
+        text += f"👤 {name} - 🗳️ {votes} ovoz\n"
+        buttons.append([InlineKeyboardButton(text=f"{name}", callback_data=f"vote:{candidate_id}:{dep_id}")])
 
-    data = callback.data.split("_")
-    employee_id = int(data[1])
-    like = data[0] == "like"
+    await cb.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
-    employees = await get_employees()
-    employee = next((v for v in employees if v[0] == employee_id), None)
+# ==========================
+# Ovoz berish
+# ==========================
+@router.callback_query(F.data.startswith("vote:"))
+async def vote_candidate(cb: CallbackQuery):
+    candidate_id, dep_id = map(int, cb.data.split(":")[1:])
+    user_id = cb.from_user.id
 
-    if not employee:
-        await callback.answer("❌ Ma'lumot topilmadi!")
-        return
-
-    id_, employee_name, likes, dislikes, department_id = employee
-
-    # ❗ To'g'ri ID yuborish: employee_id, department_id emas
-    success = await like_employee(callback.from_user.id, employee_id, like)
-
+    success = await db.vote(user_id, dep_id, candidate_id)
     if success:
-        await callback.answer("✅ Ovozingiz qabul qilindi!")
-        buttons = [
-            types.InlineKeyboardButton(text="🔝 Bosh saxifaga qaytish", callback_data="back_to_departments")
-        ]
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[buttons])
-        await callback.message.answer("✅ Ovozingiz qabul qilindi!", reply_markup=keyboard)
+        await cb.answer("✅ Siz ovoz berdingiz!", show_alert=True)
     else:
-        await callback.answer("❌ Siz avval ovoz bergansiz!")
-        button = [
-            types.InlineKeyboardButton(text="🔝 Bosh saxifaga qaytish", callback_data="back_to_departments")
-        ]
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[button])
-        await callback.message.answer("❌ Siz avval ovoz bergansiz!", reply_markup=keyboard)
+        await cb.answer("⚠️ Siz allaqachon ovoz bergansiz!", show_alert=True)
 
-    await callback.message.delete()
+    # Ovozlar bilan yangilash
+    candidates = await db.get_candidates(dep_id)
+    stats = await db.department_statistics(dep_id)
+    text = f"📌 Bo'lim nomzodlari:\n\n"
+    buttons = []
 
+    for c in candidates:
+        candidate_id, _, name, photo_id, video_id, caption = c
+        votes = next((v[1] for v in stats if v[0] == name), 0)
+        text += f"👤 {name} - 🗳️ {votes} ovoz\n"
+        buttons.append([InlineKeyboardButton(text=f"{name}", callback_data=f"vote:{candidate_id}:{dep_id}")])
 
-async def back_to_departmenys(callback: types.CallbackQuery):
-    departments = await get_departments()
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # Hozirgi faylning joylashuvi
-    photo_path = os.path.join(base_dir, "rasm", "rasm6.jpg")
-    photo = FSInputFile(photo_path)
+    # Telegram xatosini oldini olish
+    try:
+        if cb.message.text != text:
+            await cb.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    except Exception as e:
+        if "message is not modified" not in str(e):
+            raise e
 
-    buttons = [
-        [types.InlineKeyboardButton(text=department_name, callback_data=f"department_{department_id}")]
-        for department_id, department_name, _ in departments
-    ]
-    # buttons.append([types.InlineKeyboardButton(text="Talabalar", callback_data="video_like_student")])
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer_photo(photo=photo, caption="""🏛  TATU SAMARQAND FILIALIDA "ENG NAMUNALI GURUH SARDORI" TANLOVIGA START BERILDI.
-
-🏆 1-bosqich - fakultet kesimida.
-🏆 2-bosqich - filial kesimida.
-
-❗️ Eslatma: Ushbu so'rovnomada xolis fikr bildirishingizni iltimos qilib qolamiz. Natijalar rasmiy sahifalarda e'lon qilinadi.
-
-✅ Eng koʻp ovoz toʻplagan guruh sardori diplom hamda qimmatbaho sovg‘alar bilan taqdirlanadi!
-
-Ovoz berish jarayoni quyidagi bot orqali amalga oshiriladi :
-
-✅ Saralash bosqichi 31-dekabr 12:00ga qadar Kompyuter injiniringi fakulteti guruh sardorlari o'rtasida davom etadi. Eng ko'p ovoz to'plagan 3 ta guruh sardori FINAL bosqichiga chiqadi""", reply_markup=keyboard)
-    await callback.message.delete()
-
-async def like_videos(callback: types.CallbackQuery):
-    videos = await get_videos()
-
-    if not videos:  # Videolar mavjud bo'lmasa
-        await callback.message.answer("❌ Hozircha videolar mavjud emas.")
+# ==========================
+# Natijalar
+# ==========================
+async def show_results_button(msg: Message):
+    deps = await db.get_departments()
+    if not deps:
+        await msg.answer("Hozircha bo‘limlar mavjud emas.")
         return
 
-    # Inline tugmalar orqali videolarni ro'yxatini ko'rsatish
-    buttons = [[
-        types.InlineKeyboardButton(text=video_name, callback_data=f"video_{video_id}")]
-        for video_id, _, video_name, _, _ in videos
-    ]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer("Quyidagi videolardan birini tanlang:", reply_markup=keyboard)
-    await callback.message.delete()
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=d[1], callback_data=f"results_dep:{d[0]}")] for d in deps]
+    )
+    await msg.answer("Bo‘lim natijalarini ko‘rish:", reply_markup=kb)
 
-# Video tugmasi uchun handler
-async def video_handler(callback: types.CallbackQuery):
-    if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
-        await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
+@router.callback_query(F.data.startswith("results_dep:"))
+async def results_dep(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[1])
+    stats = await db.get_results(dep_id)
+
+    if not stats:
+        await cb.message.answer("Bu bo‘limda hali natijalar mavjud emas.")
         return
 
-    # Callback ma'lumotlarini ajratish
-    data = callback.data.split("_")
-    video_id = int(data[1])
+    text = "📊 Bo‘lim natijalari:\n\n"
+    for r in stats:
+        # tuple elementlarini xavfsiz olish
+        if len(r) < 5:
+            continue  # yoki xatolik xabarini yozish: continue yoki pass
+        place = r[2]          # 2 = place
+        candidate_id = r[3]   # 3 = candidate_id
+        custom_name = r[4]    # 4 = custom_name
 
-    # Videoni bazadan olish
-    videos = await get_videos()
-    video = next((v for v in videos if v[0] == video_id), None)
+        if candidate_id:
+            candidate = await db.get_candidate_by_id(candidate_id)
+            if candidate:
+                name = candidate[2]  # c[2] = name
+            else:
+                name = "Nomzod topilmadi"
+        else:
+            name = custom_name or "—"
 
-    if not video:  # Agar video topilmasa
-        await callback.answer("❌ Video topilmadi!")
-        return
+        text += f"{place}-o‘rin: {name}\n"
 
-    _, file_id, name, likes, dislikes = video
-    buttons = [
-        types.InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"likes_{video_id}"),
-        types.InlineKeyboardButton(text=f"👎 {dislikes}", callback_data=f"dislikes_{video_id}")
-    ]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[buttons])
-    await callback.message.answer_video(video=file_id, caption=name, reply_markup=keyboard)
+    await cb.message.answer(text)
 
-# Like/dislike tugmalari uchun handler
-async def handle_likes(callback: types.CallbackQuery):
-    if not callback.data:  # Callback ma'lumotlari mavjudligini tekshirish
-        await callback.answer("❌ Xato: noto'g'ri ma'lumot kiritildi!")
-        return
 
-    # Callback ma'lumotlarini ajratish
-    data = callback.data.split("_")
-    video_id = int(data[1])
-    like = data[0] == "likes"
-
-    # Ovozni bazaga yozish
-    success = await like_video(callback.from_user.id, video_id, like)
-    if success:
-        await callback.answer("✅ Ovozingiz qabul qilindi!")
-    else:
-        await callback.answer("❌ Siz avval ovoz bergansiz!")
-
-    await callback.message.delete()
-
-# Router yordamida handlerlarni ro'yxatga olish
+# ==========================
+# Routerga qo'shish
+# ==========================
 def register_user_handlers(dp: Dispatcher, bot: Bot):
-    dp.include_router(router)  # Routerni Dispatcherga qo'shish
-    router.message.register(start_handler, Command("start"))  # /start komandasi uchun handler
-    router.callback_query.register(check_memberships, lambda c: c.data and c.data.startswith('check_memberships'))
-    router.callback_query.register(
-        employee_like,
-        lambda c: c.data and c.data.startswith("department_")  # Video tanlash uchun
-    )
-    router.callback_query.register(
-        employee_handler,
-        lambda c: c.data and c.data.startswith("employee_")  # Video tanlash uchun
-    )
-    router.callback_query.register(
-        employee_handle_likes,
-        lambda c: c.data and (c.data.startswith("like_") or c.data.startswith("dislike_"))  # Like/dislike tugmalari
-    )
-    router.callback_query.register(
-        like_videos,
-        lambda c: c.data and c.data.startswith("video_like_student")  # Video tanlash uchun
-    )
-    router.callback_query.register(
-        video_handler,
-        lambda c: c.data and c.data.startswith("video_")  # Video tanlash uchun
-    )
-    router.callback_query.register(
-        handle_likes,
-        lambda c: c.data and (c.data.startswith("likes_") or c.data.startswith("dislikes_"))  # Like/dislike tugmalari
-    )
-    router.callback_query.register(
-        back_to_departmenys, 
-        lambda c: c.data and c.data == "back_to_departments"
-    )
+    dp.include_router(router)
