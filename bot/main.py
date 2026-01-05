@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "6239778268:AAFmIdsNKmjzMFRbVodT74TU0Dl1boR5ivE"
+BOT_TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
 
 async def main():
     bot = Bot(token=BOT_TOKEN)

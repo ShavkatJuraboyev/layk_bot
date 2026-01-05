@@ -14,7 +14,7 @@ from utils.auth import is_admin
 
 
 router = Router()
-TOKEN = "6239778268:AAFmIdsNKmjzMFRbVodT74TU0Dl1boR5ivE"
+TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
 
 bot = Bot(
     token=TOKEN,
@@ -559,214 +559,214 @@ async def set_place(cb: CallbackQuery, state: FSMContext):
 
 
 
-# def fetch_employees():
-#     all_employees = []
+def fetch_employees():
+    all_employees = []
 
-#     for i in range(1, 23):  # 22 ta sahifa bor
-#         API_URL = f"https://student.samtuit.uz/rest/v1/data/employee-list?type=all&page={i}"
-#         headers = {"Authorization": f"Bearer {API_TOKEN}"}
-#         res = requests.get(API_URL, headers=headers).json()
-#         data = res.get("data", {})
+    for i in range(1, 23):  # 22 ta sahifa bor
+        API_URL = f"https://student.samtuit.uz/rest/v1/data/employee-list?type=all&page={i}"
+        headers = {"Authorization": f"Bearer {API_TOKEN}"}
+        res = requests.get(API_URL, headers=headers).json()
+        data = res.get("data", {})
 
-#         if isinstance(data, dict):
-#             items = data.get("items", [])
-#         elif isinstance(data, list):
-#             items = data
-#         else:
-#             items = []
+        if isinstance(data, dict):
+            items = data.get("items", [])
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = []
 
-#         all_employees.extend(items)
-#     return all_employees
+        all_employees.extend(items)
+    return all_employees
 
-# def get_daily_average_weatherapi(city="Samarqand"):
-#     url = "http://api.weatherapi.com/v1/forecast.json"
-#     params = {
-#         "key": WEATHER_API_KEY_ONE,
-#         "q": city,
-#         "days": 1,
-#         "aqi": "no",
-#         "alerts": "no"
-#     }
-#     resp = requests.get(url, params=params, timeout=10).json()
+def get_daily_average_weatherapi(city="Samarqand"):
+    url = "http://api.weatherapi.com/v1/forecast.json"
+    params = {
+        "key": WEATHER_API_KEY_ONE,
+        "q": city,
+        "days": 1,
+        "aqi": "no",
+        "alerts": "no"
+    }
+    resp = requests.get(url, params=params, timeout=10).json()
 
-#     location = resp["location"]["name"]
-#     country = resp["location"]["country"]
-#     forecast = resp["forecast"]["forecastday"][0]["day"]
+    location = resp["location"]["name"]
+    country = resp["location"]["country"]
+    forecast = resp["forecast"]["forecastday"][0]["day"]
 
-#     avg_temp = forecast["avgtemp_c"]
-#     max_temp = forecast["maxtemp_c"]
-#     min_temp = forecast["mintemp_c"]
-#     condition = forecast["condition"]["text"]
-#     humidity = forecast["avghumidity"]
+    avg_temp = forecast["avgtemp_c"]
+    max_temp = forecast["maxtemp_c"]
+    min_temp = forecast["mintemp_c"]
+    condition = forecast["condition"]["text"]
+    humidity = forecast["avghumidity"]
 
-#     # Inglizcha → O‘zbekcha tarjima
-#     condition_translations = {
-#         "Sunny": "Quyoshli",
-#         "Clear": "Ochiq osmon",
-#         "Partly cloudy": "Qisman bulutli",
-#         "Cloudy": "Bulutli",
-#         "Overcast": "Qorong‘u osmon",
-#         "Mist": "Tumanli",
-#         "Fog": "Tuman",
-#         "Rain": "Yomg‘ir",
-#         "Light rain": "Yengil yomg‘ir",
-#         "Moderate rain": "O‘rtacha yomg‘ir",
-#         "Heavy rain": "Kuchli yomg‘ir",
-#         "Snow": "Qor",
-#         "Light snow": "Yengil qor",
-#         "Heavy snow": "Kuchli qor",
-#         "Thunderstorm": "Momaqaldiroq",
-#         "Drizzle": "Mayda yomg‘ir"
-#     }
+    # Inglizcha → O‘zbekcha tarjima
+    condition_translations = {
+        "Sunny": "Quyoshli",
+        "Clear": "Ochiq osmon",
+        "Partly cloudy": "Qisman bulutli",
+        "Cloudy": "Bulutli",
+        "Overcast": "Qorong‘u osmon",
+        "Mist": "Tumanli",
+        "Fog": "Tuman",
+        "Rain": "Yomg‘ir",
+        "Light rain": "Yengil yomg‘ir",
+        "Moderate rain": "O‘rtacha yomg‘ir",
+        "Heavy rain": "Kuchli yomg‘ir",
+        "Snow": "Qor",
+        "Light snow": "Yengil qor",
+        "Heavy snow": "Kuchli qor",
+        "Thunderstorm": "Momaqaldiroq",
+        "Drizzle": "Mayda yomg‘ir"
+    }
 
-#     condition_uz = condition_translations.get(condition, condition)
+    condition_uz = condition_translations.get(condition, condition)
 
-#     # Ob-havo rasmlari mapping
-#     weather_images = {
-#         "Sunny": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
-#         "Clear": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
-#         "Partly cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-#         "Cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-#         "Overcast": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-#         "Rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-#         "Light rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-#         "Moderate rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-#         "Snow": "https://pic.rutubelist.ru/video/2024-12-21/64/41/6441c162f6f67d0bb3a69ab136527cc0.jpg",
-#         "Thunderstorm": "https://www.wwlp.com/wp-content/uploads/sites/26/2025/06/Getty-Thunderstorm.jpg?w=1280",
-#     }
+    # Ob-havo rasmlari mapping
+    weather_images = {
+        "Sunny": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
+        "Clear": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
+        "Partly cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Overcast": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
+        "Rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Light rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Moderate rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
+        "Snow": "https://pic.rutubelist.ru/video/2024-12-21/64/41/6441c162f6f67d0bb3a69ab136527cc0.jpg",
+        "Thunderstorm": "https://www.wwlp.com/wp-content/uploads/sites/26/2025/06/Getty-Thunderstorm.jpg?w=1280",
+    }
 
-#     # Agar condition mappingda bo‘lmasa → default rasm
-#     image_url = weather_images.get(condition, "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg")
+    # Agar condition mappingda bo‘lmasa → default rasm
+    image_url = weather_images.get(condition, "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg")
 
-#     # Chiroyli caption (uzbekcha holat bilan)
-#     caption = (
-#         "<b>OB➖HOVO</b>\n\n"
-#         "🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n"
-#         f"📍 <b>{location}, {country}</b>\n"
-#         f"📅 <i>{datetime.now().strftime('%d-%m-%Y')}</i>\n\n"
-#         f"🌡️ <b>O'rtacha: {avg_temp}°C</b>\n"
-#         f"⬆️ Maks: {max_temp}°C   ⬇️ Min: {min_temp}°C\n"
-#         f"☁️ Holat: <b>{condition_uz}</b>\n"
-#         f"💧 Namlik: {humidity}%\n\n"
-#         "Bizni kuzating👇\n"
-#         "<a href='https://fb.com/sbtuit'>Facebook</a> | "
-#         "<a href='https://t.me/sbtuit2005'>Telegram</a> | "
-#         "<a href='https://instagram.com/sbtuit2005'>Instagram</a> | "
-#         "<a href='https://bit.ly/2yw9MS9'>YouTube</a>\n"
-#     )
+    # Chiroyli caption (uzbekcha holat bilan)
+    caption = (
+        "<b>OB➖HOVO</b>\n\n"
+        "🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n"
+        f"📍 <b>{location}, {country}</b>\n"
+        f"📅 <i>{datetime.now().strftime('%d-%m-%Y')}</i>\n\n"
+        f"🌡️ <b>O'rtacha: {avg_temp}°C</b>\n"
+        f"⬆️ Maks: {max_temp}°C   ⬇️ Min: {min_temp}°C\n"
+        f"☁️ Holat: <b>{condition_uz}</b>\n"
+        f"💧 Namlik: {humidity}%\n\n"
+        "Bizni kuzating👇\n"
+        "<a href='https://fb.com/sbtuit'>Facebook</a> | "
+        "<a href='https://t.me/sbtuit2005'>Telegram</a> | "
+        "<a href='https://instagram.com/sbtuit2005'>Instagram</a> | "
+        "<a href='https://bit.ly/2yw9MS9'>YouTube</a>\n"
+    )
 
-#     return caption, image_url
+    return caption, image_url
 
-# # 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
-# def get_birthdays():
-#     employees = fetch_employees()
-#     today = datetime.now().strftime("%m-%d")
-#     tomorrow = (datetime.now() + timedelta(days=1)).strftime("%m-%d")
+# 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
+def get_birthdays():
+    employees = fetch_employees()
+    today = datetime.now().strftime("%m-%d")
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%m-%d")
 
-#     birthdays_today, birthdays_tomorrow = [], []
+    birthdays_today, birthdays_tomorrow = [], []
 
-#     for emp in employees:
-#         try:
-#             # Tug‘ilgan sanani timestampdan datetime ga aylantiramiz
-#             timestamp = emp["birth_date"]
-#             if timestamp > 1e12:
-#                 timestamp = timestamp/1000
+    for emp in employees:
+        try:
+            # Tug‘ilgan sanani timestampdan datetime ga aylantiramiz
+            timestamp = emp["birth_date"]
+            if timestamp > 1e12:
+                timestamp = timestamp/1000
 
-#             birth_date = datetime.fromtimestamp(timestamp)
-#             birth_md = birth_date.strftime("%m-%d")  # faqat oy-kun
+            birth_date = datetime.fromtimestamp(timestamp)
+            birth_md = birth_date.strftime("%m-%d")  # faqat oy-kun
 
-#             info = {
-#                     "full_name": emp["full_name"],
-#                     "department": emp["department"]["name"] if emp.get("department") else "",
-#                     "kafedra": emp["structureType"]["name"] if emp.get("kafedra") else "",
-#                     "birth_date": birth_date.strftime("%Y-%m-%d"),  # to‘liq sana
-#                     "image": emp.get("image")
-#             }
+            info = {
+                    "full_name": emp["full_name"],
+                    "department": emp["department"]["name"] if emp.get("department") else "",
+                    "kafedra": emp["structureType"]["name"] if emp.get("kafedra") else "",
+                    "birth_date": birth_date.strftime("%Y-%m-%d"),  # to‘liq sana
+                    "image": emp.get("image")
+            }
 
-#             if birth_md == today:
-#                 birthdays_today.append(info)
-#             elif birth_md == tomorrow:
-#                 birthdays_tomorrow.append(info)
+            if birth_md == today:
+                birthdays_today.append(info)
+            elif birth_md == tomorrow:
+                birthdays_tomorrow.append(info)
 
-#         except Exception as e:
-#             pass
+        except Exception as e:
+            pass
 
-#     return birthdays_today, birthdays_tomorrow
+    return birthdays_today, birthdays_tomorrow
 
-# # 📤 Adminni tug‘ilgan kunlar bilan ogohlantirish
-# async def send_birthday_notifications():
-#     birthdays_today, birthdays_tomorrow = get_birthdays()
+# 📤 Adminni tug‘ilgan kunlar bilan ogohlantirish
+async def send_birthday_notifications():
+    birthdays_today, birthdays_tomorrow = get_birthdays()
     
-#     if birthdays_today:
-#         for emp in birthdays_today:
-#             full_name = emp["full_name"]
-#             department = emp["department"]
-#             kafedra = emp["kafedra"]
+    if birthdays_today:
+        for emp in birthdays_today:
+            full_name = emp["full_name"]
+            department = emp["department"]
+            kafedra = emp["kafedra"]
 
-#             caption = f"""
-#             Bugun"{department}" {kafedra} xodimi <i>{full_name}</i>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+            caption = f"""
+            Bugun"{department}" {kafedra} xodimi <i>{full_name}</i>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
 
-#             if emp.get("image"):
-#                 await bot.send_photo(
-#                     chat_id=ADMIN_ID,
-#                     photo=emp["image"],  # URL bo‘lsa to‘g‘ridan-to‘g‘ri
-#                     caption=caption,
-#                     parse_mode="HTML"
-#                 )
-#             else:
-#                 await bot.send_message(
-#                     chat_id=ADMIN_ID,
-#                     text=caption,
-#                     parse_mode="HTML"
-#                 )
+            if emp.get("image"):
+                await bot.send_photo(
+                    chat_id=ADMIN_ID,
+                    photo=emp["image"],  # URL bo‘lsa to‘g‘ridan-to‘g‘ri
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+            else:
+                await bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=caption,
+                    parse_mode="HTML"
+                )
 
-#     if birthdays_tomorrow:
-#         msg = "📌 <b>Ertaga tug‘ilgan kunlar:</b>\n\n"
-#         for emp in birthdays_tomorrow:
-#             msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
-#         await bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="HTML")
+    if birthdays_tomorrow:
+        msg = "📌 <b>Ertaga tug‘ilgan kunlar:</b>\n\n"
+        for emp in birthdays_tomorrow:
+            msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
+        await bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="HTML")
 
-#     if not birthdays_today and not birthdays_tomorrow:
-#         await bot.send_message(
-#             chat_id=ADMIN_ID,
-#             text="❌ Bugun va ertaga tug‘ilgan kun yo‘q.",
-#             parse_mode="HTML"
-#         )
+    if not birthdays_today and not birthdays_tomorrow:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text="❌ Bugun va ertaga tug‘ilgan kun yo‘q.",
+            parse_mode="HTML"
+        )
 
-# async def obhavo_command_telegram():
-#     caption, image_url = get_daily_average_weatherapi("Samarqand")
-#     await bot.send_photo(
-#         chat_id=ADMIN_ID,
-#         photo=image_url,   # ob-havoga mos rasm
-#         caption=caption,
-#         parse_mode="HTML"
-#     )
+async def obhavo_command_telegram():
+    caption, image_url = get_daily_average_weatherapi("Samarqand")
+    await bot.send_photo(
+        chat_id=ADMIN_ID,
+        photo=image_url,   # ob-havoga mos rasm
+        caption=caption,
+        parse_mode="HTML"
+    )
 
-# @router.message(F.text == "/obhavo_api")
-# async def obhavo_command(message: types.Message):
-#     if not is_admin(message.from_user.id):
-#         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-#         return
-#     caption, image_url = get_daily_average_weatherapi("Samarqand")
-#     await bot.send_photo(
-#         chat_id=ADMIN_ID,
-#         photo=image_url,   # ob-havoga mos rasm
-#         caption=caption,
-#         parse_mode="HTML"
-#     )
+@router.message(F.text == "/obhavo_api")
+async def obhavo_command(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+    caption, image_url = get_daily_average_weatherapi("Samarqand")
+    await bot.send_photo(
+        chat_id=ADMIN_ID,
+        photo=image_url,   # ob-havoga mos rasm
+        caption=caption,
+        parse_mode="HTML"
+    )
 
-# # === /test komandasi ===
-# @router.message(F.text == "/test")
-# async def test_command(message: types.Message):
-#     if not is_admin(message.from_user.id):
-#         await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-#         return
-#     if str(message.from_user.id) != str(ADMIN_ID):
-#         return await message.answer("⛔ Bu buyruq faqat admin uchun!")
+# === /test komandasi ===
+@router.message(F.text == "/test")
+async def test_command(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
+    if str(message.from_user.id) != str(ADMIN_ID):
+        return await message.answer("⛔ Bu buyruq faqat admin uchun!")
 
-#     await message.answer("⏳ Test boshlanmoqda...")
-#     await send_birthday_notifications()
-#     await message.answer("✅ Test tugadi.")
+    await message.answer("⏳ Test boshlanmoqda...")
+    await send_birthday_notifications()
+    await message.answer("✅ Test tugadi.")
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
