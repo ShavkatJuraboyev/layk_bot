@@ -4,6 +4,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 import database.db as db
 from utils.membership import check_membership
+from handlers.admin_handlers import build_department_post
 
 router = Router()
 
@@ -74,9 +75,6 @@ async def check_cb(cb: CallbackQuery, bot: Bot):
         await cb.message.answer("⚠️ Siz hali barcha kanallarga a’zo emassiz. Iltimos, qo‘shiling va qayta tekshiring.")
 
 # ==========================
-# Bo'limlarni ko'rsatish
-# ==========================
-# ==========================
 # Bo'limlarni ko'rsatish (faol va tugaganlarni ajratish)
 # ==========================
 async def show_departments(msg: Message):
@@ -134,8 +132,7 @@ async def show_candidates(cb: CallbackQuery):
     for c in candidates:
         candidate_id, _, name, photo_id, video_id, caption = c
         votes = next((v[1] for v in stats if v[0] == name), 0)
-        text += f"👤 {name} - 🗳️ {votes} ovoz\n"
-        buttons.append([InlineKeyboardButton(text=f"{name}", callback_data=f"vote:{candidate_id}:{dep_id}")])
+        buttons.append([InlineKeyboardButton(text=f"{name}-🗳️{votes}", callback_data=f"vote:{candidate_id}:{dep_id}")])
 
     await cb.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
@@ -143,35 +140,84 @@ async def show_candidates(cb: CallbackQuery):
 # Ovoz berish
 # ==========================
 @router.callback_query(F.data.startswith("vote:"))
-async def vote_candidate(cb: CallbackQuery):
-    candidate_id, dep_id = map(int, cb.data.split(":")[1:])
+async def vote_candidate(cb: CallbackQuery, bot: Bot):
+    # 1️⃣ Callback data dan idlarni olish
+    try:
+        _, candidate_id, dep_id = cb.data.split(":")
+        candidate_id = int(candidate_id)
+        dep_id = int(dep_id)
+    except Exception:
+        return await cb.answer("❌ Xatolik: noto‘g‘ri callback data", show_alert=True)
+
     user_id = cb.from_user.id
 
-    success = await db.vote(user_id, dep_id, candidate_id)
-    if success:
-        await cb.answer("✅ Siz ovoz berdingiz!", show_alert=True)
-    else:
-        await cb.answer("⚠️ Siz allaqachon ovoz bergansiz!", show_alert=True)
+    # 2️⃣ Foydalanuvchini kutish xabari
+    # await cb.answer("⏳ Tekshirilmoqda...")
 
-    # Ovozlar bilan yangilash
+    # 3️⃣ Majburiy kanallarni tekshirish
+    channels = await db.get_channels()
+    not_joined = []
+
+    for ch in channels:
+        if not await check_membership(bot, ch[3], user_id):
+            not_joined.append(ch)
+
+    if not_joined:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=ch[2], url=ch[3])] for ch in not_joined
+            ] + [
+                [InlineKeyboardButton(
+                    text="✅ A’zo bo‘ldim",
+                    url=f"https://t.me/{(await bot.me()).username}?start=vote_{candidate_id}_{dep_id}"
+                )]
+            ]
+        )
+        return await cb.message.answer(
+            "❌ Ovoz berish uchun quyidagi kanallarga a’zo bo‘ling 👇",
+            reply_markup=kb
+        )
+
+    # 4️⃣ Ovoz berish (1 user = 1 ovoz)
+    success = await db.vote(user_id, dep_id, candidate_id)
+    if not success:
+        return await cb.answer("⚠️ Siz allaqachon ovoz bergansiz", show_alert=True)
+
+    # 5️⃣ Kandidatlarni va statistikani olish
     candidates = await db.get_candidates(dep_id)
     stats = await db.department_statistics(dep_id)
-    text = f"📌 Bo'lim nomzodlari:\n\n"
-    buttons = []
+    votes_map = {name: votes for name, votes in stats}
 
-    for c in candidates:
-        candidate_id, _, name, photo_id, video_id, caption = c
-        votes = next((v[1] for v in stats if v[0] == name), 0)
-        text += f"👤 {name} - 🗳️ {votes} ovoz\n"
-        buttons.append([InlineKeyboardButton(text=f"{name}", callback_data=f"vote:{candidate_id}:{dep_id}")])
+    candidates_stats = [
+        (c[0], c[2], votes_map.get(c[2], 0)) for c in candidates
+    ]
 
-    # Telegram xatosini oldini olish
+    # 6️⃣ Start page caption
+    start_page = await db.get_start_page()
+    if not start_page:
+        return await cb.answer("❌ Start page topilmadi", show_alert=True)
+    _, base_caption = start_page
+
+    # 7️⃣ Yangi caption va keyboard
+    new_caption, new_keyboard = build_department_post(
+        dep_id=dep_id,
+        base_caption=base_caption,
+        candidates_stats=candidates_stats
+    )
+
+    # 8️⃣ Xabarni yangilash (photo yoki text)
     try:
-        if cb.message.text != text:
-            await cb.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+        if cb.message.photo:  # agar photo bo'lsa
+            await cb.message.edit_caption(caption=new_caption, reply_markup=new_keyboard)
+        else:  # oddiy text message bo'lsa
+            await cb.message.edit_text(text=new_caption, reply_markup=new_keyboard)
     except Exception as e:
         if "message is not modified" not in str(e):
-            raise e
+            print("EDIT ERROR:", e)
+
+    # 9️⃣ Yakuniy javob
+    await cb.answer("✅ Siz muvaffaqiyatli ovoz berdingiz!", show_alert=True)
+
 
 # ==========================
 # Natijalar

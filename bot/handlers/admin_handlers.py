@@ -15,7 +15,7 @@ from utils.membership import check_membership
 
 
 router = Router()
-TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
+TOKEN = "8393268918:AAG-b_DqY7AJnDVOhQIEL77wUp53n8vzldQ"
 
 bot = Bot(
     token=TOKEN,
@@ -287,30 +287,46 @@ async def cand_dep(cb: CallbackQuery, state: FSMContext):
     await state.update_data(dep_id=dep_id)
 
     candidates = await db.get_candidates(dep_id)
-
+    btn = [[InlineKeyboardButton(
+            text="➕ Yangi Nomzod qo‘shish",
+            callback_data="cand_add"
+        )]]
     if not candidates:
-        await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.")
+        await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.", reply_markup=InlineKeyboardMarkup(inline_keyboard=btn))
         return
+
+    stats = await db.department_statistics(dep_id)
+    votes_map = {name: votes for name, votes in stats}
 
     buttons = []
     for c in candidates:
-        # c[2] = nomzod ismi, c[0] = nomzod_id, c[6] = ovozlar soni
-        name = c[2] if len(c) > 2 else "Noma'lum"
-        votes = c[6] if len(c) > 6 else 0
-        buttons.append(
-            [InlineKeyboardButton(
+        candidate_id = c[0]
+        name = c[2]
+
+        votes = votes_map.get(name, 0)
+
+        buttons.append([
+            InlineKeyboardButton(
                 text=f"{name} ({votes} ovoz)",
-                callback_data=f"vote:{c[0]}:{dep_id}"
-            )]
-        )
+                callback_data=f"vote:{candidate_id}:{dep_id}"
+            )
+        ])
 
-    # Yangi nomzod qo‘shish tugmasi
-    buttons.append([InlineKeyboardButton(text="➕ Yangi Nomzod qo‘shish", callback_data="cand_add")])
-    # Nomzodlarni yuborish tugmasi
-    buttons.append([InlineKeyboardButton(text="📤 Nomzodlarni yuborish", callback_data=f"send_dep:{dep_id}")])
+    buttons.append([InlineKeyboardButton(
+        text="➕ Yangi Nomzod qo‘shish",
+        callback_data="cand_add"
+    )])
 
-    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-    await cb.message.answer("Nomzodlar ro‘yxati:", reply_markup=kb)
+    buttons.append([InlineKeyboardButton(
+        text="📤 Nomzodlarni yuborish",
+        callback_data=f"send_dep:{dep_id}"
+    )])
+
+    await cb.message.answer(
+        "Nomzodlar ro‘yxati:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+
 
 # ======================================================
 # ADD NEW CANDIDATE
@@ -577,125 +593,210 @@ async def set_place(cb: CallbackQuery, state: FSMContext):
 # -------------------------
 # 2️⃣ Admin botga yuboradi (preview)
 # -------------------------
+def build_department_post(dep_id, base_caption, candidates_stats):
+    """
+    candidates_stats: [(candidate_id, name, votes), ...]
+    """
+
+    text = base_caption + "\n\n<b>🗳 NOMZODLAR:</b>\n"
+
+    keyboard = []
+
+    for i, (candidate_id, name, votes) in enumerate(candidates_stats, start=1):
+        text += f"\n{i}. <b>{name}</b> — 🗳 {votes} ovoz"
+        keyboard.append([
+            InlineKeyboardButton(
+                text=f"🗳 {name} ({votes})",
+                callback_data=f"vote:{candidate_id}:{dep_id}"
+            )
+        ])
+
+    return text, InlineKeyboardMarkup(inline_keyboard=keyboard)
+
 @router.callback_query(F.data.startswith("send_dep:"))
 async def send_dep_preview(cb: CallbackQuery, bot: Bot):
     dep_id = int(cb.data.split(":")[1])
+
     candidates = await db.get_candidates(dep_id)
-
     if not candidates:
-        await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.")
-        return
+        return await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.")
 
-    for c in candidates:
-        photo_id = c[3] if len(c) > 3 else None
-        name = c[2] if len(c) > 2 else "Noma'lum"
-        votes = c[6] if len(c) > 6 else 0
-        caption = f"{name} ({votes} ovoz)"
+    # 1️⃣ Start page dan rasm va caption
+    start_page = await db.get_start_page()
+    if not start_page:
+        return await cb.message.answer("❌ Start page topilmadi")
 
-        if photo_id:
-            await cb.message.answer_photo(photo=photo_id, caption=caption)
-        else:
-            await cb.message.answer(f"📄 {caption}")
+    photo_id, base_caption = start_page
 
-    # Tagida kanal va guruh tugmalari
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Kanalga yuborish", callback_data=f"send_channel:{dep_id}")]
-    ])
-    await cb.message.answer("Nomzodlarni qaerga yuborishni tanlang:", reply_markup=kb)
+    # 2️⃣ Ovozlar statistikasi
+    stats = await db.department_statistics(dep_id)
+    votes_map = {name: votes for name, votes in stats}
 
-
-
-
-# -------------------------
-# 4️⃣ Kanalga yuborish
-# -------------------------
-@router.callback_query(F.data.startswith("send_channel:"))
-async def send_channel(cb: CallbackQuery, bot: Bot):
-
-    dep_id = int(cb.data.split(":")[1])
-    candidates = await db.get_candidates(dep_id)
-    channels = await db.get_channels()
-
-    if not candidates:
-        return await cb.message.answer("❌ Nomzodlar yo‘q")
-
-    if not channels:
-        return await cb.message.answer("❌ Kanallar yo‘q")
-
+    # 3️⃣ Nomzodlarni yig‘amiz
+    candidates_stats = []
     for c in candidates:
         candidate_id = c[0]
         name = c[2]
-        photo = c[3]
-        votes = c[6] if len(c) > 6 else 0
+        votes = votes_map.get(name, 0)
+        candidates_stats.append((candidate_id, name, votes))
 
-        caption = f"👤 {name}\n🗳 Ovozlar: {votes}"
+    # 4️⃣ Bitta post yasaymiz
+    caption, keyboard = build_department_post(
+        dep_id=dep_id,
+        base_caption=base_caption,
+        candidates_stats=candidates_stats
+    )
 
-        keyboard = InlineKeyboardMarkup(
+    # 5️⃣ Preview yuboramiz (BITTA POST)
+    await cb.message.answer_photo(
+        photo=photo_id,
+        caption=caption,
+        reply_markup=keyboard
+    )
+
+    # 6️⃣ Kanalga yuborish tugmasi
+    await cb.message.answer(
+        "Nomzodlarni kanalga yuborasizmi?",
+        reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="🗳 Ovoz berish",
-                        callback_data=f"vote:{candidate_id}:{dep_id}"
-                    )
-                ]
+                [InlineKeyboardButton(
+                    text="📢 Kanalga yuborish",
+                    callback_data=f"send_channel:{dep_id}"
+                )]
             ]
         )
-
-        for ch in channels:
-            chat_name = '@tatusfyoshlarittifoqi'
-            if not chat_name:
-                continue
-
-            try:
-                if photo:
-                    await bot.send_photo(
-                        chat_id=chat_name,
-                        photo=photo,
-                        caption=caption,
-                        reply_markup=keyboard
-                    )
-                else:
-                    await bot.send_message(
-                        chat_id=chat_name,
-                        text=caption,
-                        reply_markup=keyboard
-                    )
-            except Exception as e:
-                print(f"❌ {chat_name} ga yuborilmadi:", e)
-
-    await cb.message.answer("✅ Nomzodlar kanallarga yuborildi")
+    )
 
 
-# -------------------------
-# 5️⃣ Foydalanuvchi ovoz berish
-# -------------------------
+@router.callback_query(F.data.startswith("send_channel:"))
+async def send_channel(cb: CallbackQuery, bot: Bot):
+    dep_id = int(cb.data.split(":")[1])
+
+    candidates = await db.get_candidates(dep_id)
+    if not candidates:
+        return await cb.answer("❌ Nomzodlar yo‘q", show_alert=True)
+
+    # 1️⃣ Start page (rasm + umumiy caption)
+    start_page = await db.get_start_page()
+    if not start_page:
+        return await cb.answer("❌ Start page topilmadi", show_alert=True)
+
+    photo_id, base_caption = start_page
+
+    # 2️⃣ Ovozlar statistikasi
+    stats = await db.department_statistics(dep_id)
+    votes_map = {name: votes for name, votes in stats}
+
+    # 3️⃣ Nomzodlarni yig‘amiz
+    candidates_stats = []
+    for c in candidates:
+        candidate_id = c[0]
+        name = c[2]
+        votes = votes_map.get(name, 0)
+        candidates_stats.append((candidate_id, name, votes))
+
+    # 4️⃣ Bitta post yasaymiz (OLDINGI FUNKSIYA)
+    caption, keyboard = build_department_post(
+        dep_id=dep_id,
+        base_caption=base_caption,
+        candidates_stats=candidates_stats
+    )
+
+    # 5️⃣ HAR BIR KANALGA BITTA POST
+    
+    chat_id = '@kompyuter_programmalar_dasturlar'
+
+    try:
+        await bot.send_photo(
+            chat_id=chat_id,
+            photo=photo_id,
+            caption=caption,
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        print(f"❌ Kanalga yuborilmadi ({chat_id}):", e)
+
+    await cb.answer("✅ Nomzodlar kanalga yuborildi", show_alert=True)
+
+
 @router.callback_query(F.data.startswith("vote:"))
 async def vote_candidate(cb: CallbackQuery, bot: Bot):
-
+    # 1️⃣ Callback data dan idlarni olish
     try:
         _, candidate_id, dep_id = cb.data.split(":")
         candidate_id = int(candidate_id)
-    except:
-        return await cb.answer("❌ Xatolik", show_alert=True)
+        dep_id = int(dep_id)
+    except Exception:
+        return await cb.answer("❌ Xatolik: noto‘g‘ri callback data", show_alert=True)
 
     user_id = cb.from_user.id
+
+    # 2️⃣ Foydalanuvchini kutish xabari
+    # await cb.answer("⏳ Tekshirilmoqda...")
+
+    # 3️⃣ Majburiy kanallarni tekshirish
     channels = await db.get_channels()
+    not_joined = []
 
     for ch in channels:
-        chat_name = chat_name = '@tatusfyoshlarittifoqi'
-        if not chat_name:
-            continue   # ⬅️ MUHIM
+        if not await check_membership(bot, ch[3], user_id):
+            not_joined.append(ch)
 
-        if not await check_membership(bot, chat_name, user_id):
-            return await cb.answer(
-                f"❌ Siz {ch[2]} kanaliga a’zo emassiz",
-                show_alert=True
-            )
+    if not_joined:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=ch[2], url=ch[3])] for ch in not_joined
+            ] + [
+                [InlineKeyboardButton(
+                    text="✅ A’zo bo‘ldim",
+                    url=f"https://t.me/{(await bot.me()).username}?start=vote_{candidate_id}_{dep_id}"
+                )]
+            ]
+        )
+        return await cb.message.answer(
+            "❌ Ovoz berish uchun quyidagi kanallarga a’zo bo‘ling 👇",
+            reply_markup=kb
+        )
 
-    await db.add_vote(candidate_id, user_id)
-    await cb.answer("✅ Ovoz qabul qilindi", show_alert=True)
+    # 4️⃣ Ovoz berish (1 user = 1 ovoz)
+    success = await db.vote(user_id, dep_id, candidate_id)
+    if not success:
+        return await cb.answer("⚠️ Siz allaqachon ovoz bergansiz", show_alert=True)
 
+    # 5️⃣ Kandidatlarni va statistikani olish
+    candidates = await db.get_candidates(dep_id)
+    stats = await db.department_statistics(dep_id)
+    votes_map = {name: votes for name, votes in stats}
 
+    candidates_stats = [
+        (c[0], c[2], votes_map.get(c[2], 0)) for c in candidates
+    ]
+
+    # 6️⃣ Start page caption
+    start_page = await db.get_start_page()
+    if not start_page:
+        return await cb.answer("❌ Start page topilmadi", show_alert=True)
+    _, base_caption = start_page
+
+    # 7️⃣ Yangi caption va keyboard
+    new_caption, new_keyboard = build_department_post(
+        dep_id=dep_id,
+        base_caption=base_caption,
+        candidates_stats=candidates_stats
+    )
+
+    # 8️⃣ Xabarni yangilash (photo yoki text)
+    try:
+        if cb.message.photo:  # agar photo bo'lsa
+            await cb.message.edit_caption(caption=new_caption, reply_markup=new_keyboard)
+        else:  # oddiy text message bo'lsa
+            await cb.message.edit_text(text=new_caption, reply_markup=new_keyboard)
+    except Exception as e:
+        if "message is not modified" not in str(e):
+            print("EDIT ERROR:", e)
+
+    # 9️⃣ Yakuniy javob
+    await cb.answer("✅ Siz muvaffaqiyatli ovoz berdingiz!", show_alert=True)
 
 
 

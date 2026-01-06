@@ -1,17 +1,18 @@
 import asyncio
-from aiogram.fsm.storage.memory import MemoryStorage
-from database.db import init_db
-from handlers.admin_handlers import register_admin_handlers
-from handlers.user_handlers import register_user_handlers
 import pytz
 from aiogram import Bot, Dispatcher
+from database.db import init_db
+from aiogram.fsm.storage.memory import MemoryStorage
+from handlers.admin_handlers import register_admin_handlers
+from handlers.user_handlers import register_user_handlers
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiogram.client.default import DefaultBotProperties
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "7577757347:AAHcnJTtIidThEN6GbnRZEFiieeKFWyThMk"
+BOT_TOKEN = "8393268918:AAG-b_DqY7AJnDVOhQIEL77wUp53n8vzldQ"
 
 async def main():
-    bot = Bot(token=BOT_TOKEN)
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     dp = Dispatcher(storage=MemoryStorage())
     await init_db()
     register_admin_handlers(dp, bot)

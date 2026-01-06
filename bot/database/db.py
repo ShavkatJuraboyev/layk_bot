@@ -349,3 +349,12 @@ async def get_results(department_id):
         ORDER BY place
         """, (department_id,))
         return await cur.fetchall()
+
+
+async def count_votes(candidate_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "SELECT COUNT(*) FROM votes WHERE candidate_id=?",
+            (candidate_id,)
+        )
+        return (await cur.fetchone())[0]
