@@ -603,7 +603,6 @@ def build_department_post(dep_id, base_caption, candidates_stats):
     keyboard = []
 
     for i, (candidate_id, name, votes) in enumerate(candidates_stats, start=1):
-        text += f"\n{i}. <b>{name}</b> — 🗳 {votes} ovoz"
         keyboard.append([
             InlineKeyboardButton(
                 text=f"🗳 {name} ({votes})",
@@ -704,7 +703,7 @@ async def send_channel(cb: CallbackQuery, bot: Bot):
 
     # 5️⃣ HAR BIR KANALGA BITTA POST
     
-    chat_id = '@kompyuter_programmalar_dasturlar'
+    chat_id = '@tatusfyoshlarittifoqi'
 
     try:
         await bot.send_photo(
