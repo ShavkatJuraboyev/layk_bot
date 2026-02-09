@@ -28,7 +28,7 @@ ADMIN_ID = 2004004762
 WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
 CITY = "Samarqand"
 API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
-API_TOKEN = "Y-R36P1BY-eLfuCwQbcbAlvt9GAMk-WP"
+API_TOKEN = "" #token
 WEATHER_API_KEY_ONE = "65484c016bd4407dbff62042251009" 
 
 
