@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.client.default import DefaultBotProperties
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "8393268918:AAG-b_DqY7AJnDVOhQIEL77wUp53n8vzldQ"
+BOT_TOKEN = "8393268918:AAFvzl4GDz8SKe9ew2pwkNlsQif0X21NRV4"
 
 async def main():
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
