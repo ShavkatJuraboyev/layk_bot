@@ -15,7 +15,7 @@ from utils.membership import check_membership
 
 
 router = Router()
-TOKEN = "8393268918:AAG-b_DqY7AJnDVOhQIEL77wUp53n8vzldQ"
+TOKEN = "8393268918:AAFvzl4GDz8SKe9ew2pwkNlsQif0X21NRV4"
 
 bot = Bot(
     token=TOKEN,
