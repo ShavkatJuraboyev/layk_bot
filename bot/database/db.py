@@ -8,13 +8,10 @@ if not os.path.exists(DB_DIR):
     os.makedirs(DB_DIR)
 
 
-# ======================================================
-# INIT DATABASE
-# ======================================================
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("PRAGMA foreign_keys = ON")
 
-        # USERS
         await db.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +19,6 @@ async def init_db():
         )
         """)
 
-        # START PAGE
         await db.execute("""
         CREATE TABLE IF NOT EXISTS start_page (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -31,32 +27,29 @@ async def init_db():
         )
         """)
 
-        # MANDATORY CHANNELS
         await db.execute("""
         CREATE TABLE IF NOT EXISTS mandatory_channels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             chat_id INTEGER,
-            title TEXT,
-            invite_link TEXT
+            title TEXT NOT NULL,
+            invite_link TEXT NOT NULL
         )
         """)
 
-        # DEPARTMENTS
         await db.execute("""
         CREATE TABLE IF NOT EXISTS departments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
+            name TEXT NOT NULL,
             photo_id TEXT,
             is_active INTEGER DEFAULT 1
         )
         """)
 
-        # CANDIDATES
         await db.execute("""
         CREATE TABLE IF NOT EXISTS candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department_id INTEGER,
-            name TEXT,
+            department_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
             photo_id TEXT,
             video_id TEXT,
             caption TEXT,
@@ -64,22 +57,20 @@ async def init_db():
         )
         """)
 
-        # VOTES
         await db.execute("""
         CREATE TABLE IF NOT EXISTS votes (
-            user_id INTEGER,
-            department_id INTEGER,
-            candidate_id INTEGER,
+            user_id INTEGER NOT NULL,
+            department_id INTEGER NOT NULL,
+            candidate_id INTEGER NOT NULL,
             UNIQUE(user_id, department_id)
         )
         """)
 
-        # RESULTS
         await db.execute("""
         CREATE TABLE IF NOT EXISTS results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            department_id INTEGER,
-            place INTEGER,
+            department_id INTEGER NOT NULL,
+            place INTEGER NOT NULL,
             candidate_id INTEGER,
             custom_name TEXT
         )
@@ -88,10 +79,7 @@ async def init_db():
         await db.commit()
 
 
-# ======================================================
-# USERS
-# ======================================================
-async def add_user(telegram_id):
+async def add_user(telegram_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT OR IGNORE INTO users (telegram_id) VALUES (?)",
@@ -100,48 +88,30 @@ async def add_user(telegram_id):
         await db.commit()
 
 
-# ======================================================
-# START PAGE CRUD
-# ======================================================
-async def create_start_page(photo_id, caption):
+async def create_start_page(photo_id: str | None, caption: str | None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-        INSERT INTO start_page (id, photo_id, caption)
+        INSERT OR REPLACE INTO start_page (id, photo_id, caption)
         VALUES (1, ?, ?)
         """, (photo_id, caption))
         await db.commit()
 
+
 async def get_start_page():
     async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("""
-        SELECT photo_id, caption FROM start_page WHERE id=1
-        """)
+        cur = await db.execute(
+            "SELECT photo_id, caption FROM start_page WHERE id = 1"
+        )
         return await cur.fetchone()
-
-
-async def update_start_page(photo_id, caption):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-        UPDATE start_page
-        SET photo_id=?, caption=?
-        WHERE id=1
-        """, (photo_id, caption))
-        await db.commit()
 
 
 async def delete_start_page():
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-        DELETE FROM start_page WHERE id=1
-        """)
+        await db.execute("DELETE FROM start_page WHERE id = 1")
         await db.commit()
 
 
-
-# ======================================================
-# MANDATORY CHANNELS CRUD
-# ======================================================
-async def add_channel(chat_id, title, invite_link):
+async def add_channel(chat_id, title: str, invite_link: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
         INSERT INTO mandatory_channels (chat_id, title, invite_link)
@@ -152,30 +122,17 @@ async def add_channel(chat_id, title, invite_link):
 
 async def get_channels():
     async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("SELECT * FROM mandatory_channels")
+        cur = await db.execute("SELECT * FROM mandatory_channels ORDER BY id DESC")
         return await cur.fetchall()
 
 
-async def update_channel(channel_id, title, invite_link):
+async def delete_channel(channel_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-        UPDATE mandatory_channels
-        SET title=?, invite_link=?
-        WHERE id=?
-        """, (title, invite_link, channel_id))
+        await db.execute("DELETE FROM mandatory_channels WHERE id = ?", (channel_id,))
         await db.commit()
 
 
-async def delete_channel(channel_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM mandatory_channels WHERE id=?", (channel_id,))
-        await db.commit()
-
-
-# ======================================================
-# DEPARTMENTS CRUD
-# ======================================================
-async def add_department(name, photo_id):
+async def add_department(name: str, photo_id: str | None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
         INSERT INTO departments (name, photo_id)
@@ -184,101 +141,83 @@ async def add_department(name, photo_id):
         await db.commit()
 
 
-async def get_departments(include_closed=True):
+async def get_departments(include_closed: bool = True):
     async with aiosqlite.connect(DB_PATH) as db:
         if include_closed:
-            cur = await db.execute("SELECT * FROM departments")
+            cur = await db.execute("SELECT * FROM departments ORDER BY id DESC")
         else:
-            cur = await db.execute("SELECT * FROM departments WHERE is_active=1")
+            cur = await db.execute(
+                "SELECT * FROM departments WHERE is_active = 1 ORDER BY id DESC"
+            )
         return await cur.fetchall()
 
-async def update_department(dep_id, name, photo_id):
+
+async def set_department_status(dep_id: int, is_active: bool):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-        UPDATE departments
-        SET name=?, photo_id=?
-        WHERE id=?
-        """, (name, photo_id, dep_id))
+        await db.execute(
+            "UPDATE departments SET is_active = ? WHERE id = ?",
+            (1 if is_active else 0, dep_id)
+        )
         await db.commit()
 
 
-async def set_department_status(dep_id, is_active: bool):
+async def delete_department(dep_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-        UPDATE departments SET is_active=?
-        WHERE id=?
-        """, (1 if is_active else 0, dep_id))
+        await db.execute("DELETE FROM departments WHERE id = ?", (dep_id,))
         await db.commit()
 
 
-async def delete_department(dep_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM departments WHERE id=?", (dep_id,))
-        await db.commit()
-
-
-# ======================================================
-# CANDIDATES CRUD
-# ======================================================
-async def add_candidate(department_id, name, photo_id=None, video_id=None, caption=None):
+async def add_candidate(department_id: int, name: str, photo_id=None, video_id=None, caption=None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-        INSERT INTO candidates
-        (department_id, name, photo_id, video_id, caption)
+        INSERT INTO candidates (department_id, name, photo_id, video_id, caption)
         VALUES (?, ?, ?, ?, ?)
         """, (department_id, name, photo_id, video_id, caption))
         await db.commit()
 
 
-async def get_candidates(department_id):
+async def get_candidates(department_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("""
-        SELECT * FROM candidates WHERE department_id=?
-        """, (department_id,))
+        cur = await db.execute(
+            "SELECT * FROM candidates WHERE department_id = ? ORDER BY id DESC",
+            (department_id,)
+        )
         return await cur.fetchall()
 
 
-async def update_candidate(candidate_id, name=None, photo_id=None, video_id=None, caption=None, 
-                           update_only_name=False, update_only_media=False, update_only_caption=False):
+async def get_candidate_by_id(candidate_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        if update_only_name:
-            await db.execute("UPDATE candidates SET name=? WHERE id=?", (name, candidate_id))
-        elif update_only_media:
-            await db.execute("UPDATE candidates SET photo_id=?, video_id=? WHERE id=?", (photo_id, video_id, candidate_id))
-        elif update_only_caption:
-            await db.execute("UPDATE candidates SET caption=? WHERE id=?", (caption, candidate_id))
-        else:
-            await db.execute("""
-                UPDATE candidates
-                SET name = COALESCE(?, name),
-                    photo_id = COALESCE(?, photo_id),
-                    video_id = COALESCE(?, video_id),
-                    caption = COALESCE(?, caption)
-                WHERE id = ?
-            """, (name, photo_id, video_id, caption, candidate_id))
-        await db.commit()
-
-
-async def get_candidate_by_id(candidate_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("SELECT * FROM candidates WHERE id=?", (candidate_id,))
+        cur = await db.execute(
+            "SELECT * FROM candidates WHERE id = ?",
+            (candidate_id,)
+        )
         return await cur.fetchone()
-    
 
-async def delete_candidate(candidate_id):
+
+async def update_candidate(candidate_id: int, name=None, photo_id=None, video_id=None, caption=None):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM candidates WHERE id=?", (candidate_id,))
+        await db.execute("""
+        UPDATE candidates
+        SET name = COALESCE(?, name),
+            photo_id = COALESCE(?, photo_id),
+            video_id = COALESCE(?, video_id),
+            caption = COALESCE(?, caption)
+        WHERE id = ?
+        """, (name, photo_id, video_id, caption, candidate_id))
         await db.commit()
 
 
-# ======================================================
-# VOTING
-# ======================================================
-async def vote(user_id, department_id, candidate_id):
+async def delete_candidate(candidate_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM candidates WHERE id = ?", (candidate_id,))
+        await db.commit()
+
+
+async def vote(user_id: int, department_id: int, candidate_id: int) -> bool:
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("""
         SELECT 1 FROM votes
-        WHERE user_id=? AND department_id=?
+        WHERE user_id = ? AND department_id = ?
         """, (user_id, department_id))
 
         if await cur.fetchone():
@@ -292,16 +231,13 @@ async def vote(user_id, department_id, candidate_id):
         return True
 
 
-async def reset_votes_by_department(department_id):
+async def reset_votes_by_department(department_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM votes WHERE department_id=?", (department_id,))
+        await db.execute("DELETE FROM votes WHERE department_id = ?", (department_id,))
         await db.commit()
 
 
-# ======================================================
-# RESULTS CRUD
-# ======================================================
-async def add_result(department_id, place, candidate_id=None, custom_name=None):
+async def add_result(department_id: int, place: int, candidate_id=None, custom_name=None):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
         INSERT INTO results (department_id, place, candidate_id, custom_name)
@@ -310,51 +246,40 @@ async def add_result(department_id, place, candidate_id=None, custom_name=None):
         await db.commit()
 
 
-async def get_results(department_id):
+async def get_results(department_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("""
         SELECT * FROM results
-        WHERE department_id=?
-        ORDER BY place
+        WHERE department_id = ?
+        ORDER BY place ASC
         """, (department_id,))
         return await cur.fetchall()
 
 
-async def delete_results(department_id):
+async def delete_results(department_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM results WHERE department_id=?", (department_id,))
+        await db.execute("DELETE FROM results WHERE department_id = ?", (department_id,))
         await db.commit()
 
 
-# ======================================================
-# STATISTICS
-# ======================================================
-async def department_statistics(department_id):
+async def department_statistics(department_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("""
-        SELECT c.name, COUNT(v.candidate_id) as votes
+        SELECT c.name, COUNT(v.candidate_id) AS votes
         FROM candidates c
         LEFT JOIN votes v ON v.candidate_id = c.id
-        WHERE c.department_id=?
+        WHERE c.department_id = ?
         GROUP BY c.id
         ORDER BY votes DESC
         """, (department_id,))
         return await cur.fetchall()
 
-async def get_results(department_id):
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("""
-        SELECT * FROM results
-        WHERE department_id=?
-        ORDER BY place
-        """, (department_id,))
-        return await cur.fetchall()
 
-
-async def count_votes(candidate_id):
+async def count_votes(candidate_id: int) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
-            "SELECT COUNT(*) FROM votes WHERE candidate_id=?",
+            "SELECT COUNT(*) FROM votes WHERE candidate_id = ?",
             (candidate_id,)
         )
-        return (await cur.fetchone())[0]
+        row = await cur.fetchone()
+        return row[0] if row else 0
