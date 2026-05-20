@@ -1,31 +1,41 @@
 import asyncio
-import pytz
-from aiogram import Bot, Dispatcher
-from database.db import init_db
-from aiogram.fsm.storage.memory import MemoryStorage
-from handlers.admin_handlers import register_admin_handlers, send_birthday_notifications, obhavo_command_telegram
-from handlers.user_handlers import register_user_handlers
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from aiogram.client.default import DefaultBotProperties
+import logging
 
-# Bot tokenini o'rnatish
-BOT_TOKEN = "8393268918:AAFvzl4GDz8SKe9ew2pwkNlsQif0X21NRV4"
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+
+from config import BOT_TOKEN, AUTO_NOTIFY_ENABLED
+from database.db import init_db
+from handlers.admin_handlers import register_admin_handlers
+from handlers.user_handlers import register_user_handlers
+from services.notifications import daily_notifications_loop
+
 
 async def main():
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
+    logging.basicConfig(level=logging.INFO)
+    bot = Bot(
+        token=BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
     dp = Dispatcher(storage=MemoryStorage())
+
     await init_db()
     register_admin_handlers(dp, bot)
     register_user_handlers(dp, bot)
 
-    scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tashkent"))
-    scheduler.add_job(send_birthday_notifications, trigger='cron', hour=8, minute=00, misfire_grace_time=20)
-    scheduler.add_job(obhavo_command_telegram, trigger='cron', hour=6, minute=0, misfire_grace_time=30)
-    scheduler.start()
+    notify_task = None
+    if AUTO_NOTIFY_ENABLED:
+        notify_task = asyncio.create_task(daily_notifications_loop(bot))
+
     try:
         await dp.start_polling(bot)
-    except Exception as e:
+    finally:
+        if notify_task:
+            notify_task.cancel()
         await bot.session.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

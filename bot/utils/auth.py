@@ -1,5 +1,7 @@
-# utils/auth.py
+from config import ADMIN_IDS
 
-def is_admin(user_id: int) -> bool:
-    ADMINS = [1421622919, 2004004762]  # Adminlar Telegram IDlari ro'yxati
-    return user_id in ADMINS
+
+def is_admin(user_id: int | None) -> bool:
+    if user_id is None:
+        return False
+    return int(user_id) in ADMIN_IDS

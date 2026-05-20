@@ -1,1013 +1,874 @@
-import os
-import requests
-from aiogram import Router, F, types, Bot, Dispatcher
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ChatMember
-from aiogram.filters import Command
+from aiogram import Router, F, Bot, Dispatcher
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from datetime import datetime, timedelta
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.filters import StateFilter
-import database.db as db
-from utils.auth import is_admin
-from utils.membership import check_membership
 
+import database.db as db
+from config import ADMIN_IDS, DEFAULT_CHANNEL
+from utils.auth import is_admin
+from utils.membership import normalize_chat_id
+from services.notifications import admin_tools_keyboard, send_birthdays_to_chat, send_weather_to_chat, send_test_to_admin
 
 router = Router()
-TOKEN = "8393268918:AAFvzl4GDz8SKe9ew2pwkNlsQif0X21NRV4"
-
-bot = Bot(
-    token=TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-image_path = os.path.join(BASE_DIR, "images", "sunny.jpg")
-ADMIN_ID = 2004004762 
-WEATHER_API_KEY = "e4016445b7fb35f0746afcc49c41a0ef"
-CITY = "Samarqand"
-API_URL = "https://student.samtuit.uz/rest/v1/data/employee-list?type=all"
-API_TOKEN = "Gsn5NIXA09_bWdua5CHLLCygSsi6a5Tv" #token
-WEATHER_API_KEY_ONE = "65484c016bd4407dbff62042251009" 
 
 
 class StartPageFSM(StatesGroup):
     photo = State()
     caption = State()
 
+
 class ChannelFSM(StatesGroup):
     title = State()
     link = State()
 
+
 class DepartmentFSM(StatesGroup):
     name = State()
     photo = State()
+    edit_name = State()
+    edit_photo = State()
+
 
 class CandidateFSM(StatesGroup):
-    department = State()
     name = State()
     media = State()
     caption = State()
-    edit_choice = State()
     edit_name = State()
     edit_media = State()
     edit_caption = State()
 
+
 class ResultFSM(StatesGroup):
-    department = State()
-    place = State()
-    custom = State()
+    custom_name = State()
 
 
-# =====================================================
-# ADMIN MENU
-# =====================================================
+def admin_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🖼 Start sahifa", callback_data="admin:start")],
+        [InlineKeyboardButton(text="📢 Majburiy kanallar", callback_data="admin:channels")],
+        [InlineKeyboardButton(text="🏷 Bo‘limlar / ovoz yig‘uvchilar", callback_data="admin:deps")],
+        [InlineKeyboardButton(text="🎂 Tug‘ilgan kun / 🌤 Ob-havo", callback_data="admin:notifications")],
+        [InlineKeyboardButton(text="🏆 Natijalar", callback_data="admin:results")],
+        [InlineKeyboardButton(text="📊 Umumiy statistika", callback_data="admin:stats")],
+    ])
+
+
+def back_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅️ Admin panel", callback_data="admin:back")]
+    ])
+
+
+def start_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Yaratish / yangilash", callback_data="start:create")],
+        [InlineKeyboardButton(text="👁 Ko‘rish", callback_data="start:view")],
+        [InlineKeyboardButton(text="🗑 O‘chirish", callback_data="start:delete")],
+        [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="admin:back")],
+    ])
+
+
+def channels_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Kanal qo‘shish", callback_data="channel:add")],
+        [InlineKeyboardButton(text="📋 Kanallar ro‘yxati", callback_data="channel:list")],
+        [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="admin:back")],
+    ])
+
+
+def deps_kb(deps):
+    rows = [[InlineKeyboardButton(text="➕ Bo‘lim qo‘shish", callback_data="dep:add")]]
+    for dep_id, name, _photo, is_active in deps:
+        icon = "🟢" if is_active else "🔴"
+        rows.append([InlineKeyboardButton(text=f"{icon} {name}", callback_data=f"dep:open:{dep_id}")])
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data="admin:back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def dep_manage_kb(dep_id: int, is_active: int):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👤 Nomzodlar", callback_data=f"cand:list:{dep_id}")],
+        [InlineKeyboardButton(text="📤 Kanalga yuborish", callback_data=f"send:preview:{dep_id}")],
+        [InlineKeyboardButton(text="📊 Statistika", callback_data=f"stat:dep:{dep_id}")],
+        [
+            InlineKeyboardButton(text="✏️ Nomini tahrirlash", callback_data=f"dep:edit_name:{dep_id}"),
+            InlineKeyboardButton(text="🖼 Rasmini tahrirlash", callback_data=f"dep:edit_photo:{dep_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🔒 Yopish" if is_active else "🔓 Ochish", callback_data=f"dep:toggle:{dep_id}"),
+            InlineKeyboardButton(text="♻️ Ovozlarni tozalash", callback_data=f"dep:reset_votes:{dep_id}"),
+        ],
+        [InlineKeyboardButton(text="🗑 Bo‘limni o‘chirish", callback_data=f"dep:delete_confirm:{dep_id}")],
+        [InlineKeyboardButton(text="⬅️ Bo‘limlar", callback_data="admin:deps")],
+    ])
+
+
+def candidate_manage_kb(candidate_id: int, dep_id: int, is_active: int):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✏️ Ism", callback_data=f"cand:edit_name:{candidate_id}"),
+            InlineKeyboardButton(text="🖼 Media", callback_data=f"cand:edit_media:{candidate_id}"),
+            InlineKeyboardButton(text="📝 Izoh", callback_data=f"cand:edit_caption:{candidate_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🙈 Yashirish" if is_active else "👁 Ko‘rsatish", callback_data=f"cand:toggle:{candidate_id}"),
+            InlineKeyboardButton(text="🗑 O‘chirish", callback_data=f"cand:delete_confirm:{candidate_id}"),
+        ],
+        [InlineKeyboardButton(text="⬅️ Nomzodlar", callback_data=f"cand:list:{dep_id}")],
+    ])
+
+
+async def notify_admins(bot: Bot, text: str):
+    for admin_id in ADMIN_IDS:
+        try:
+            await bot.send_message(admin_id, text)
+        except Exception as e:
+            print(f"Admin xabar yuborilmadi {admin_id}: {e}")
+
+
+def admin_only(func):
+    async def wrapper(event, *args, **kwargs):
+        user = event.from_user
+
+        if not is_admin(user.id):
+            if isinstance(event, Message):
+                await event.answer("⛔ Siz admin emassiz.")
+            else:
+                await event.answer("⛔ Siz admin emassiz.", show_alert=True)
+            return
+
+        # Aiogram baʼzan handlerga dispatcher, event_router kabi
+        # qoʻshimcha service argumentlarni yuboradi.
+        # Hamma handlerlar ularni qabul qilmaydi, shuning uchun
+        # faqat kerakli argumentlarni qoldiramiz.
+        allowed_kwargs = {}
+        func_vars = func.__code__.co_varnames[:func.__code__.co_argcount]
+
+        for key, value in kwargs.items():
+            if key in func_vars:
+                allowed_kwargs[key] = value
+
+        return await func(event, *args, **allowed_kwargs)
+
+    return wrapper
+
+
 @router.message(Command("admin"))
+@admin_only
 async def admin_menu(msg: Message):
-    if not is_admin(msg.from_user.id):
-        return
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🖼 Start page", callback_data="admin_start")],
-        [InlineKeyboardButton(text="📢 Kanallar", callback_data="admin_channels")],
-        [InlineKeyboardButton(text="🏷 Bo‘limlar", callback_data="admin_departments")],
-        [InlineKeyboardButton(text="👤 Nomzodlar", callback_data="admin_candidates")],
-        [InlineKeyboardButton(text="🏆 Natijalar", callback_data="admin_results")],
-    ])
-    await msg.answer("🔐 Admin panel", reply_markup=kb)
-
-# =====================================================
-# START PAGE CRUD
-# =====================================================
-@router.callback_query(F.data == "admin_start")
-async def start_page_menu(cb: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Create / Update", callback_data="start_create")],
-        [InlineKeyboardButton(text="👁 View", callback_data="start_view")],
-        [InlineKeyboardButton(text="❌ Delete", callback_data="start_delete")],
-    ])
-    await cb.message.answer("Start page CRUD", reply_markup=kb)
+    await msg.answer("🔐 <b>Admin panel</b>\nKerakli bo‘limni tanlang:", reply_markup=admin_kb())
 
 
-@router.callback_query(F.data == "start_create")
+@router.callback_query(F.data == "admin:back")
+@admin_only
+async def admin_back(cb: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await cb.message.answer("🔐 <b>Admin panel</b>", reply_markup=admin_kb())
+    await cb.answer()
+
+
+
+
+@router.callback_query(F.data == "admin:notifications")
+@admin_only
+async def admin_notifications(cb: CallbackQuery):
+    await cb.message.answer(
+        "🎂 <b>Tug‘ilgan kun va ob-havo bo‘limi</b>\n\n"
+        "Bu yerdan ma’lumotni qo‘lda tekshirishingiz mumkin. "
+        "Tug‘ilgan kunlar va ob-havo ma’lumotlari har kuni avtomatik tekshiriladi va kerakli xabarlar yuboriladi, shuning uchun qo‘lda tekshirish shart emas, lekin istasangiz bu yerda ham tekshirishingiz mumkin.\n\n"
+        "va bu bir necha daqiqagacha davom etishi mumkin.",
+        reply_markup=admin_tools_keyboard()
+    )
+    await cb.answer()
+
+
+@router.callback_query(F.data == "notify:birthdays_today")
+@admin_only
+async def notify_birthdays_today(cb: CallbackQuery, bot: Bot):
+    await cb.answer("Tekshirilmoqda...")
+    await send_birthdays_to_chat(bot, cb.from_user.id, days_ahead=0)
+
+
+@router.callback_query(F.data == "notify:birthdays_tomorrow")
+@admin_only
+async def notify_birthdays_tomorrow(cb: CallbackQuery, bot: Bot):
+    await cb.answer("Tekshirilmoqda...")
+    await send_birthdays_to_chat(bot, cb.from_user.id, days_ahead=1)
+
+
+@router.callback_query(F.data == "notify:weather")
+@admin_only
+async def notify_weather(cb: CallbackQuery, bot: Bot):
+    await cb.answer("Ob-havo olinmoqda...")
+    await send_weather_to_chat(bot, cb.from_user.id)
+
+
+@router.callback_query(F.data == "notify:test")
+@admin_only
+async def notify_test(cb: CallbackQuery, bot: Bot):
+    await cb.answer("Test yuborilmoqda...")
+    await send_test_to_admin(bot, cb.from_user.id)
+
+
+@router.message(Command("test"))
+@admin_only
+async def test_command(msg: Message, bot: Bot):
+    await send_test_to_admin(bot, msg.from_user.id)
+
+
+@router.message(Command("obhavo_api"))
+@admin_only
+async def obhavo_command(msg: Message, bot: Bot):
+    await send_weather_to_chat(bot, msg.from_user.id)
+
+
+@router.message(Command("birthday"))
+@admin_only
+async def birthday_command(msg: Message, bot: Bot):
+    await send_birthdays_to_chat(bot, msg.from_user.id, days_ahead=0)
+
+
+@router.callback_query(F.data == "admin:start")
+@admin_only
+async def admin_start(cb: CallbackQuery):
+    await cb.message.answer("🖼 <b>Start sahifa sozlamalari</b>", reply_markup=start_kb())
+    await cb.answer()
+
+
+@router.callback_query(F.data == "start:create")
+@admin_only
 async def start_create(cb: CallbackQuery, state: FSMContext):
     await state.set_state(StartPageFSM.photo)
-    await cb.message.answer("Start uchun rasm yuboring:")
+    await cb.message.answer("Start sahifa uchun rasm yuboring. Rasm kerak bo‘lmasa /skip yuboring.")
+    await cb.answer()
+
+
+@router.message(F.text == "/skip", StateFilter(StartPageFSM.photo))
+@admin_only
+async def start_skip_photo(msg: Message, state: FSMContext):
+    await state.update_data(photo_id=None)
+    await state.set_state(StartPageFSM.caption)
+    await msg.answer("Start sahifa matnini kiriting:")
 
 
 @router.message(StartPageFSM.photo)
+@admin_only
 async def start_photo(msg: Message, state: FSMContext):
-    await state.update_data(photo=msg.photo[-1].file_id)
+    if not msg.photo:
+        return await msg.answer("Iltimos, rasm yuboring yoki /skip bosing.")
+    await state.update_data(photo_id=msg.photo[-1].file_id)
     await state.set_state(StartPageFSM.caption)
-    await msg.answer("Caption yuboring:")
+    await msg.answer("Start sahifa matnini kiriting:")
 
 
 @router.message(StartPageFSM.caption)
+@admin_only
 async def start_caption(msg: Message, state: FSMContext):
     data = await state.get_data()
-    await db.create_start_page(data["photo"], msg.text)
+    await db.create_start_page(data.get("photo_id"), msg.html_text)
     await state.clear()
-    await msg.answer("✅ Start page saqlandi")
+    await msg.answer("✅ Start sahifa saqlandi.", reply_markup=back_kb())
 
 
-@router.callback_query(F.data == "start_view")
+@router.callback_query(F.data == "start:view")
+@admin_only
 async def start_view(cb: CallbackQuery):
     data = await db.get_start_page()
     if not data:
-        await cb.message.answer("Start page yo‘q")
-        return
-    await cb.message.answer_photo(data[0], caption=data[1])
+        await cb.message.answer("📭 Start sahifa hali yaratilmagan.")
+    else:
+        photo_id, caption = data
+        if photo_id:
+            await cb.message.answer_photo(photo_id, caption=caption or "")
+        else:
+            await cb.message.answer(caption or "Matn yo‘q")
+    await cb.answer()
 
 
-@router.callback_query(F.data == "start_delete")
+@router.callback_query(F.data == "start:delete")
+@admin_only
 async def start_delete(cb: CallbackQuery):
     await db.delete_start_page()
-    await cb.message.answer("🗑 O‘chirildi")
+    await cb.message.answer("🗑 Start sahifa o‘chirildi.")
+    await cb.answer()
 
 
-# =====================================================
-# CHANNELS CRUD
-# =====================================================
-@router.callback_query(F.data == "admin_channels")
-async def channels_menu(cb: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Add", callback_data="channel_add")],
-        [InlineKeyboardButton(text="📋 List", callback_data="channel_list")],
-    ])
-    await cb.message.answer("Kanallar CRUD", reply_markup=kb)
+@router.callback_query(F.data == "admin:channels")
+@admin_only
+async def admin_channels(cb: CallbackQuery):
+    await cb.message.answer("📢 <b>Majburiy kanallar</b>", reply_markup=channels_kb())
+    await cb.answer()
 
 
-@router.callback_query(F.data == "channel_add")
+@router.callback_query(F.data == "channel:add")
+@admin_only
 async def channel_add(cb: CallbackQuery, state: FSMContext):
     await state.set_state(ChannelFSM.title)
-    await cb.message.answer("Kanal nomini yuboring:")
+    await cb.message.answer("Kanal nomini kiriting:")
+    await cb.answer()
 
 
 @router.message(ChannelFSM.title)
+@admin_only
 async def channel_title(msg: Message, state: FSMContext):
-    await state.update_data(title=msg.text)
+    await state.update_data(title=msg.text.strip())
     await state.set_state(ChannelFSM.link)
-    await msg.answer("Kanal linkini yuboring:")
+    await msg.answer("Kanal linki yoki username kiriting. Masalan: @kanal yoki https://t.me/kanal")
 
 
 @router.message(ChannelFSM.link)
+@admin_only
 async def channel_link(msg: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     link = msg.text.strip()
-    
-    chat_id = None  # default
-
-    # Faqat public kanallar uchun chat_id olishga harakat qilamiz
-    if link.startswith("https://t.me/"):
-        username = link.split("https://t.me/")[-1].strip()
-        try:
-            chat = await bot.get_chat(username)
-            chat_id = chat.id
-        except Exception:
-            chat_id = None  # private channel yoki bot kanalda emas
-
-    # DB ga saqlaymiz, chat_id None bo‘lsa ham link orqali saqlaymiz
-    await db.add_channel(chat_id, data["title"], link)
-
-    if chat_id:
-        await msg.answer(f"✅ Kanal qo‘shildi! Chat ID: `{chat_id}`", parse_mode="Markdown")
-    else:
-        await msg.answer(f"✅ Kanal qo‘shildi, lekin bot kanalga qo‘shilmagan yoki private kanal. Tekshirish ishlamaydi.", parse_mode="Markdown")
-
+    chat_id = normalize_chat_id(link)
+    real_chat_id = chat_id
+    try:
+        if chat_id:
+            chat = await bot.get_chat(chat_id)
+            real_chat_id = chat.id
+    except Exception:
+        real_chat_id = None
+    await db.add_channel(real_chat_id, data["title"], link)
     await state.clear()
+    await msg.answer("✅ Kanal qo‘shildi. Eslatma: a’zolik tekshiruvi ishlashi uchun bot kanalda admin bo‘lishi kerak.", reply_markup=channels_kb())
 
 
-@router.callback_query(F.data == "channel_list")
+@router.callback_query(F.data == "channel:list")
+@admin_only
 async def channel_list(cb: CallbackQuery):
     channels = await db.get_channels()
     if not channels:
-        await cb.message.answer("Kanal yo‘q")
-        return
-
-    for c in channels:
+        await cb.message.answer("📭 Kanal mavjud emas.")
+    for ch_id, chat_id, title, link in channels:
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Delete", callback_data=f"channel_del:{c[0]}")]
+            [InlineKeyboardButton(text="🗑 O‘chirish", callback_data=f"channel:delete:{ch_id}")]
         ])
-        await cb.message.answer(f"{c[2]}\n{c[3]}", reply_markup=kb)
+        await cb.message.answer(f"📢 <b>{title}</b>\n🔗 {link}\n🆔 {chat_id or 'aniqlanmadi'}", reply_markup=kb)
+    await cb.answer()
 
 
-@router.callback_query(F.data.startswith("channel_del:"))
+@router.callback_query(F.data.startswith("channel:delete:"))
+@admin_only
 async def channel_delete(cb: CallbackQuery):
-    cid = int(cb.data.split(":")[1])
-    await db.delete_channel(cid)
-    await cb.message.answer("🗑 Kanal o‘chirildi")
+    channel_id = int(cb.data.split(":")[-1])
+    await db.delete_channel(channel_id)
+    await cb.message.answer("🗑 Kanal o‘chirildi.", reply_markup=channels_kb())
+    await cb.answer()
 
 
-# =====================================================
-# DEPARTMENTS CRUD
-# =====================================================
-@router.callback_query(F.data == "admin_departments")
-async def department_menu(cb: CallbackQuery):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Add", callback_data="dep_add")],
-        [InlineKeyboardButton(text="📋 List", callback_data="dep_list")],
-    ])
-    await cb.message.answer("Bo‘limlar CRUD", reply_markup=kb)
+@router.callback_query(F.data == "admin:deps")
+@admin_only
+async def admin_deps(cb: CallbackQuery):
+    deps = await db.get_departments(True)
+    await cb.message.answer("🏷 <b>Bo‘limlar / ovoz yig‘uvchilar</b>", reply_markup=deps_kb(deps))
+    await cb.answer()
 
 
-@router.callback_query(F.data == "dep_add")
+@router.callback_query(F.data == "dep:add")
+@admin_only
 async def dep_add(cb: CallbackQuery, state: FSMContext):
     await state.set_state(DepartmentFSM.name)
-    await cb.message.answer("Bo‘lim nomi:")
+    await cb.message.answer("Bo‘lim yoki ovoz yig‘uvchi nomini kiriting:")
+    await cb.answer()
 
 
 @router.message(DepartmentFSM.name)
+@admin_only
 async def dep_name(msg: Message, state: FSMContext):
-    await state.update_data(name=msg.text)
+    await state.update_data(name=msg.text.strip())
     await state.set_state(DepartmentFSM.photo)
-    await msg.answer("Bo‘lim rasmi yuboring:")
+    await msg.answer("Bo‘lim rasmini yuboring. Rasm kerak bo‘lmasa /skip yuboring.")
+
+
+@router.message(F.text == "/skip", StateFilter(DepartmentFSM.photo))
+@admin_only
+async def dep_skip_photo(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    dep_id = await db.add_department(data["name"], None)
+    await state.clear()
+    await msg.answer("✅ Bo‘lim qo‘shildi.", reply_markup=dep_manage_kb(dep_id, 1))
 
 
 @router.message(DepartmentFSM.photo)
+@admin_only
 async def dep_photo(msg: Message, state: FSMContext):
+    if not msg.photo:
+        return await msg.answer("Rasm yuboring yoki /skip bosing.")
     data = await state.get_data()
-    await db.add_department(data["name"], msg.photo[-1].file_id)
+    dep_id = await db.add_department(data["name"], msg.photo[-1].file_id)
     await state.clear()
-    await msg.answer("✅ Bo‘lim qo‘shildi")
+    await msg.answer("✅ Bo‘lim qo‘shildi.", reply_markup=dep_manage_kb(dep_id, 1))
 
 
-@router.callback_query(F.data == "dep_list")
-async def dep_list(cb: CallbackQuery):
-    deps = await db.get_departments()
-    for d in deps:
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="🔒 Close" if d[3] else "🔓 Open",
-                    callback_data=f"dep_toggle:{d[0]}:{d[3]}"
-                ),
-                InlineKeyboardButton(text="❌ Delete", callback_data=f"dep_del:{d[0]}")
-            ]
-        ])
-        await cb.message.answer(f"{d[1]}", reply_markup=kb)
+@router.callback_query(F.data.startswith("dep:open:"))
+@admin_only
+async def dep_open(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    dep = await db.get_department(dep_id)
+    if not dep:
+        await cb.message.answer("❌ Bo‘lim topilmadi.")
+    else:
+        _id, name, photo, is_active = dep
+        total_votes = await db.count_all_votes(dep_id)
+        text = f"🏷 <b>{name}</b>\n📌 Holat: {'🟢 faol' if is_active else '🔴 yopiq'}\n🗳 Ovozlar: <b>{total_votes}</b>"
+        if photo:
+            await cb.message.answer_photo(photo, caption=text, reply_markup=dep_manage_kb(dep_id, is_active))
+        else:
+            await cb.message.answer(text, reply_markup=dep_manage_kb(dep_id, is_active))
+    await cb.answer()
 
 
-@router.callback_query(F.data.startswith("dep_toggle:"))
-async def dep_toggle(cb: CallbackQuery):
-    _, dep_id, status = cb.data.split(":")
-    await db.set_department_status(int(dep_id), not bool(int(status)))
-    await cb.message.answer("Status o‘zgartirildi")
-
-
-@router.callback_query(F.data.startswith("dep_del:"))
-async def dep_delete(cb: CallbackQuery):
-    dep_id = int(cb.data.split(":")[1])
-    await db.delete_department(dep_id)
-    await cb.message.answer("🗑 Bo‘lim o‘chirildi")
-
-
-# ======================================================
-# SHOW DEPARTMENTS
-# ======================================================
-@router.callback_query(F.data == "admin_candidates")
-async def candidates_menu(cb: CallbackQuery):
-    deps = await db.get_departments(False)
-    if not deps:
-        await cb.message.answer("Bo‘limlar mavjud emas.")
-        return
-
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=d[1], callback_data=f"cand_dep:{d[0]}")] for d in deps]
-    )
-    await cb.message.answer("Bo‘lim tanlang:", reply_markup=kb)
-
-
-# ======================================================
-# SHOW CANDIDATES IN DEPARTMENT
-# ======================================================
-@router.callback_query(F.data.startswith("cand_dep:"))
-async def cand_dep(cb: CallbackQuery, state: FSMContext):
-    dep_id = int(cb.data.split(":")[1])
+@router.callback_query(F.data.startswith("dep:edit_name:"))
+@admin_only
+async def dep_edit_name_start(cb: CallbackQuery, state: FSMContext):
+    dep_id = int(cb.data.split(":")[-1])
     await state.update_data(dep_id=dep_id)
+    await state.set_state(DepartmentFSM.edit_name)
+    await cb.message.answer("Yangi nomni kiriting:")
+    await cb.answer()
 
+
+@router.message(DepartmentFSM.edit_name)
+@admin_only
+async def dep_edit_name(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    await db.update_department(data["dep_id"], name=msg.text.strip())
+    await state.clear()
+    await msg.answer("✅ Bo‘lim nomi tahrirlandi.")
+
+
+@router.callback_query(F.data.startswith("dep:edit_photo:"))
+@admin_only
+async def dep_edit_photo_start(cb: CallbackQuery, state: FSMContext):
+    dep_id = int(cb.data.split(":")[-1])
+    await state.update_data(dep_id=dep_id)
+    await state.set_state(DepartmentFSM.edit_photo)
+    await cb.message.answer("Yangi rasm yuboring:")
+    await cb.answer()
+
+
+@router.message(DepartmentFSM.edit_photo)
+@admin_only
+async def dep_edit_photo(msg: Message, state: FSMContext):
+    if not msg.photo:
+        return await msg.answer("Iltimos, rasm yuboring.")
+    data = await state.get_data()
+    await db.update_department(data["dep_id"], photo_id=msg.photo[-1].file_id)
+    await state.clear()
+    await msg.answer("✅ Bo‘lim rasmi tahrirlandi.")
+
+
+@router.callback_query(F.data.startswith("dep:toggle:"))
+@admin_only
+async def dep_toggle(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    dep = await db.get_department(dep_id)
+    if dep:
+        await db.set_department_status(dep_id, not bool(dep[3]))
+        await cb.message.answer("✅ Bo‘lim holati o‘zgartirildi.")
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("dep:reset_votes:"))
+@admin_only
+async def dep_reset_votes(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    await db.reset_votes_by_department(dep_id)
+    await cb.message.answer("♻️ Ushbu bo‘lim ovozlari tozalandi.")
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("dep:delete_confirm:"))
+@admin_only
+async def dep_delete_confirm(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Ha, o‘chirish", callback_data=f"dep:delete:{dep_id}")],
+        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"dep:open:{dep_id}")],
+    ])
+    await cb.message.answer("⚠️ Bo‘lim o‘chirilsa, nomzodlar va ovozlar ham o‘chadi. Davom etasizmi?", reply_markup=kb)
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("dep:delete:"))
+@admin_only
+async def dep_delete(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    await db.delete_department(dep_id)
+    await cb.message.answer("🗑 Bo‘lim o‘chirildi.")
+    await cb.answer()
+
+
+@router.callback_query(F.data.startswith("cand:list:"))
+@admin_only
+async def cand_list(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
     candidates = await db.get_candidates(dep_id)
-    btn = [[InlineKeyboardButton(
-            text="➕ Yangi Nomzod qo‘shish",
-            callback_data="cand_add"
-        )]]
-    if not candidates:
-        await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.", reply_markup=InlineKeyboardMarkup(inline_keyboard=btn))
-        return
-
+    rows = [[InlineKeyboardButton(text="➕ Nomzod qo‘shish", callback_data=f"cand:add:{dep_id}")]]
     stats = await db.department_statistics(dep_id)
-    votes_map = {name: votes for name, votes in stats}
-
-    buttons = []
-    for c in candidates:
-        candidate_id = c[0]
-        name = c[2]
-
-        votes = votes_map.get(name, 0)
-
-        buttons.append([
-            InlineKeyboardButton(
-                text=f"{name} ({votes} ovoz)",
-                callback_data=f"vote:{candidate_id}:{dep_id}"
-            )
-        ])
-
-    buttons.append([InlineKeyboardButton(
-        text="➕ Yangi Nomzod qo‘shish",
-        callback_data="cand_add"
-    )])
-
-    buttons.append([InlineKeyboardButton(
-        text="📤 Nomzodlarni yuborish",
-        callback_data=f"send_dep:{dep_id}"
-    )])
-
-    await cb.message.answer(
-        "Nomzodlar ro‘yxati:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
-    )
+    votes = {cid: count for cid, _name, count in stats}
+    for cand_id, _dep, name, _photo, _video, _caption, active in candidates:
+        icon = "🟢" if active else "🔴"
+        rows.append([InlineKeyboardButton(text=f"{icon} {name} — {votes.get(cand_id, 0)} ovoz", callback_data=f"cand:open:{cand_id}")])
+    rows.append([InlineKeyboardButton(text="⬅️ Bo‘lim", callback_data=f"dep:open:{dep_id}")])
+    await cb.message.answer("👤 <b>Nomzodlar ro‘yxati</b>", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await cb.answer()
 
 
-# ======================================================
-# ADD NEW CANDIDATE
-# ======================================================
-@router.callback_query(F.data == "cand_add")
-async def add_candidate_start(cb: CallbackQuery, state: FSMContext):
+@router.callback_query(F.data.startswith("cand:add:"))
+@admin_only
+async def cand_add_start(cb: CallbackQuery, state: FSMContext):
+    dep_id = int(cb.data.split(":")[-1])
+    await state.update_data(dep_id=dep_id)
     await state.set_state(CandidateFSM.name)
-    await cb.message.answer("Nomzod ismi:")
+    await cb.message.answer("Nomzod ismini kiriting:")
+    await cb.answer()
 
 
 @router.message(CandidateFSM.name)
+@admin_only
 async def cand_name(msg: Message, state: FSMContext):
-    await state.update_data(name=msg.text)
+    await state.update_data(name=msg.text.strip())
     await state.set_state(CandidateFSM.media)
-    await msg.answer("Rasm yoki video yuboring (ixtiyoriy, o‘tkazib yuborish uchun /skip):")
+    await msg.answer("Nomzod rasmi yoki videosini yuboring. Kerak bo‘lmasa /skip yuboring.")
+
+
+@router.message(F.text == "/skip", StateFilter(CandidateFSM.media))
+@admin_only
+async def cand_skip_media(msg: Message, state: FSMContext):
+    await state.update_data(photo_id=None, video_id=None)
+    await state.set_state(CandidateFSM.caption)
+    await msg.answer("Nomzod haqida izoh kiriting. Kerak bo‘lmasa /skip yuboring.")
 
 
 @router.message(CandidateFSM.media)
+@admin_only
 async def cand_media(msg: Message, state: FSMContext):
-    data = await state.get_data()
-    photo = msg.photo[-1].file_id if msg.photo else None
-    video = msg.video.file_id if msg.video else None
-    await state.update_data(photo=photo, video=video)
+    photo_id = msg.photo[-1].file_id if msg.photo else None
+    video_id = msg.video.file_id if msg.video else None
+    if not photo_id and not video_id:
+        return await msg.answer("Rasm yoki video yuboring. Kerak bo‘lmasa /skip yuboring.")
+    await state.update_data(photo_id=photo_id, video_id=video_id)
     await state.set_state(CandidateFSM.caption)
-    await msg.answer("Caption kiriting (ixtiyoriy, o‘tkazib yuborish uchun /skip):")
+    await msg.answer("Nomzod haqida izoh kiriting. Kerak bo‘lmasa /skip yuboring.")
 
 
-# Skip media handler
-@router.message(F.text == "/skip", StateFilter(CandidateFSM.media))
-async def skip_media(msg: Message, state: FSMContext):
-    await state.update_data(photo=None, video=None)
-    await state.set_state(CandidateFSM.caption)
-    await msg.answer("Caption kiriting (ixtiyoriy, o‘tkazib yuborish uchun /skip):")
-
-# Skip caption handler
 @router.message(F.text == "/skip", StateFilter(CandidateFSM.caption))
-async def skip_caption(msg: Message, state: FSMContext):
+@admin_only
+async def cand_skip_caption(msg: Message, state: FSMContext):
     data = await state.get_data()
-    await db.add_candidate(data["dep_id"], data["name"], data.get("photo"), data.get("video"), None)
+    cand_id = await db.add_candidate(data["dep_id"], data["name"], data.get("photo_id"), data.get("video_id"), None)
     await state.clear()
-    await msg.answer("✅ Nomzod qo‘shildi")
-
+    await msg.answer("✅ Nomzod qo‘shildi.", reply_markup=candidate_manage_kb(cand_id, data["dep_id"], 1))
 
 
 @router.message(CandidateFSM.caption)
-async def add_caption(msg: Message, state: FSMContext):
+@admin_only
+async def cand_caption(msg: Message, state: FSMContext):
     data = await state.get_data()
-    await db.add_candidate(data["dep_id"], data["name"], data.get("photo"), data.get("video"), msg.text)
+    cand_id = await db.add_candidate(data["dep_id"], data["name"], data.get("photo_id"), data.get("video_id"), msg.html_text)
     await state.clear()
-    await msg.answer("✅ Nomzod qo‘shildi")
+    await msg.answer("✅ Nomzod qo‘shildi.", reply_markup=candidate_manage_kb(cand_id, data["dep_id"], 1))
 
 
-# ======================================================
-# VIEW / EDIT / DELETE CANDIDATE
-# ======================================================
-@router.callback_query(F.data.startswith("cand_view:"))
-async def view_candidate(cb: CallbackQuery, state: FSMContext):
-    cand_id = int(cb.data.split(":")[1])
-    candidate = await db.get_candidate_by_id(cand_id)
-
-    if not candidate:
-        await cb.message.answer("Nomzod topilmadi.")
-        return
-
-    # Media yuborish (ixtiyoriy)
-    if candidate[3]:  # photo_id
-        await cb.message.answer_photo(candidate[3], caption=candidate[5] or candidate[2])
-    elif candidate[4]:  # video_id
-        await cb.message.answer_video(candidate[4], caption=candidate[5] or candidate[2])
+@router.callback_query(F.data.startswith("cand:open:"))
+@admin_only
+async def cand_open(cb: CallbackQuery):
+    cand_id = int(cb.data.split(":")[-1])
+    cand = await db.get_candidate_by_id(cand_id)
+    if not cand:
+        return await cb.message.answer("❌ Nomzod topilmadi.")
+    _id, dep_id, name, photo_id, video_id, caption, active = cand
+    votes = await db.department_statistics(dep_id)
+    vote_count = next((v for cid, _n, v in votes if cid == cand_id), 0)
+    text = f"👤 <b>{name}</b>\n📌 Holat: {'🟢 faol' if active else '🔴 yashirilgan'}\n🗳 Ovoz: <b>{vote_count}</b>\n\n{caption or ''}"
+    if photo_id:
+        await cb.message.answer_photo(photo_id, caption=text, reply_markup=candidate_manage_kb(cand_id, dep_id, active))
+    elif video_id:
+        await cb.message.answer_video(video_id, caption=text, reply_markup=candidate_manage_kb(cand_id, dep_id, active))
     else:
-        # Hech qanday media yo'q bo'lsa, faqat caption yoki ismni yuboramiz
-        await cb.message.answer(candidate[5] or candidate[2])
-
-    # Edit / Delete tugmalari
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[[  # list ichida list bo'lishi shart
-            InlineKeyboardButton(text="✏️ Tahrirlash", callback_data=f"cand_edit:{cand_id}"),
-            InlineKeyboardButton(text="🗑️ O‘chirish", callback_data=f"cand_delete:{cand_id}")
-        ]]
-    )
-    await cb.message.answer("Tanlang:", reply_markup=kb)
+        await cb.message.answer(text, reply_markup=candidate_manage_kb(cand_id, dep_id, active))
+    await cb.answer()
 
 
-
-# ======================================================
-# DELETE CANDIDATE
-# ======================================================
-@router.callback_query(F.data.startswith("cand_delete:"))
-async def delete_candidate_cb(cb: CallbackQuery):
-    cand_id = int(cb.data.split(":")[1])
-    await db.delete_candidate(cand_id)
-    await cb.message.answer("✅ Nomzod o‘chirildi")
-
-
-# ======================================================
-# EDIT CANDIDATE MENU
-# ======================================================
-@router.callback_query(F.data.startswith("cand_edit:"))
-async def edit_candidate_start(cb: CallbackQuery, state: FSMContext):
-    cand_id = int(cb.data.split(":")[1])
+@router.callback_query(F.data.startswith("cand:edit_name:"))
+@admin_only
+async def cand_edit_name_start(cb: CallbackQuery, state: FSMContext):
+    cand_id = int(cb.data.split(":")[-1])
     await state.update_data(cand_id=cand_id)
-    await state.set_state(CandidateFSM.edit_choice)
-
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Ismni tahrirlash", callback_data="edit_name")],
-            [InlineKeyboardButton(text="Media tahrirlash", callback_data="edit_media")],
-            [InlineKeyboardButton(text="Caption tahrirlash", callback_data="edit_caption")]
-        ]
-    )
-    await cb.message.answer("Nimani tahrirlashni xohlaysiz?", reply_markup=kb)
+    await state.set_state(CandidateFSM.edit_name)
+    await cb.message.answer("Yangi ismni kiriting:")
+    await cb.answer()
 
 
-@router.callback_query(F.data.startswith("edit_"))
-async def edit_choice(cb: CallbackQuery, state: FSMContext):
-    choice = cb.data.split("_")[1]
-    await state.update_data(edit_field=choice)
-
-    if choice == "name":
-        await state.set_state(CandidateFSM.edit_name)
-        await cb.message.answer("Yangi ismni kiriting:")
-    elif choice == "media":
-        await state.set_state(CandidateFSM.edit_media)
-        await cb.message.answer("Yangi rasm yoki video yuboring (ixtiyoriy, /skip):")
-    elif choice == "caption":
-        await state.set_state(CandidateFSM.edit_caption)
-        await cb.message.answer("Yangi caption kiriting (ixtiyoriy, /skip):")
-
-
-# ================== EDIT HANDLERS ==================
 @router.message(CandidateFSM.edit_name)
-async def edit_name(msg: Message, state: FSMContext):
+@admin_only
+async def cand_edit_name(msg: Message, state: FSMContext):
     data = await state.get_data()
-    # faqat ism o'zgartirish, media va caption eski qoladi
-    await db.update_candidate(data["cand_id"], msg.text, None, None, None, update_only_name=True)
+    await db.update_candidate(data["cand_id"], name=msg.text.strip())
     await state.clear()
-    await msg.answer("✅ Ism tahrirlandi")
+    await msg.answer("✅ Nomzod ismi tahrirlandi.")
+
+
+@router.callback_query(F.data.startswith("cand:edit_media:"))
+@admin_only
+async def cand_edit_media_start(cb: CallbackQuery, state: FSMContext):
+    cand_id = int(cb.data.split(":")[-1])
+    await state.update_data(cand_id=cand_id)
+    await state.set_state(CandidateFSM.edit_media)
+    await cb.message.answer("Yangi rasm/video yuboring. Medianı olib tashlash uchun /clear yuboring.")
+    await cb.answer()
+
+
+@router.message(F.text == "/clear", StateFilter(CandidateFSM.edit_media))
+@admin_only
+async def cand_clear_media(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    await db.clear_candidate_media(data["cand_id"])
+    await state.clear()
+    await msg.answer("✅ Nomzod mediasi olib tashlandi.")
 
 
 @router.message(CandidateFSM.edit_media)
-async def edit_media(msg: Message, state: FSMContext):
+@admin_only
+async def cand_edit_media(msg: Message, state: FSMContext):
+    photo_id = msg.photo[-1].file_id if msg.photo else None
+    video_id = msg.video.file_id if msg.video else None
+    if not photo_id and not video_id:
+        return await msg.answer("Rasm/video yuboring yoki /clear bosing.")
     data = await state.get_data()
-    photo = msg.photo[-1].file_id if msg.photo else None
-    video = msg.video.file_id if msg.video else None
-    await db.update_candidate(data["cand_id"], None, photo, video, None, update_only_media=True)
+    await db.update_candidate(data["cand_id"], photo_id=photo_id, video_id=video_id)
     await state.clear()
-    await msg.answer("✅ Media tahrirlandi")
+    await msg.answer("✅ Nomzod mediasi tahrirlandi.")
+
+
+@router.callback_query(F.data.startswith("cand:edit_caption:"))
+@admin_only
+async def cand_edit_caption_start(cb: CallbackQuery, state: FSMContext):
+    cand_id = int(cb.data.split(":")[-1])
+    await state.update_data(cand_id=cand_id)
+    await state.set_state(CandidateFSM.edit_caption)
+    await cb.message.answer("Yangi izohni kiriting:")
+    await cb.answer()
 
 
 @router.message(CandidateFSM.edit_caption)
-async def edit_caption(msg: Message, state: FSMContext):
+@admin_only
+async def cand_edit_caption(msg: Message, state: FSMContext):
     data = await state.get_data()
-    await db.update_candidate(data["cand_id"], None, None, None, msg.text, update_only_caption=True)
+    await db.update_candidate(data["cand_id"], caption=msg.html_text)
     await state.clear()
-    await msg.answer("✅ Caption tahrirlandi")
+    await msg.answer("✅ Nomzod izohi tahrirlandi.")
 
 
-# ================== SKIP HANDLERS ==================
-@router.message(F.text == "/skip", StateFilter(CandidateFSM.edit_media))
-async def skip_edit_media(msg: Message, state: FSMContext):
-    await state.clear()
-    await msg.answer("✅ Media tahrirlandi (o‘zgarmadi)")
-
-@router.message(F.text == "/skip", StateFilter(CandidateFSM.edit_caption))
-async def skip_edit_caption(msg: Message, state: FSMContext):
-    await state.clear()
-    await msg.answer("✅ Caption tahrirlandi (o‘zgarmadi)")
-
+@router.callback_query(F.data.startswith("cand:toggle:"))
+@admin_only
+async def cand_toggle(cb: CallbackQuery):
+    cand_id = int(cb.data.split(":")[-1])
+    cand = await db.get_candidate_by_id(cand_id)
+    if cand:
+        await db.set_candidate_status(cand_id, not bool(cand[6]))
+        await cb.message.answer("✅ Nomzod holati o‘zgartirildi.")
+    await cb.answer()
 
 
-# =====================================================
-# RESULTS CRUD (QO‘LDA)
-# =====================================================
-@router.callback_query(F.data == "admin_results")
-async def admin_results_menu(cb: CallbackQuery):
-    deps = await db.get_departments()
-    if not deps:
-        await cb.message.answer("⚠️ Hozircha bo‘limlar mavjud emas.")
-        return
-
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=d[1], callback_data=f"admin_dep:{d[0]}")] 
-            for d in deps
-        ]
-    )
-    await cb.message.answer("Bo‘lim tanlang:", reply_markup=kb)
+@router.callback_query(F.data.startswith("cand:delete_confirm:"))
+@admin_only
+async def cand_delete_confirm(cb: CallbackQuery):
+    cand_id = int(cb.data.split(":")[-1])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Ha, o‘chirish", callback_data=f"cand:delete:{cand_id}")],
+        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"cand:open:{cand_id}")],
+    ])
+    await cb.message.answer("⚠️ Nomzod o‘chirilsa, unga berilgan ovozlar ham o‘chadi. Davom etasizmi?", reply_markup=kb)
+    await cb.answer()
 
 
-@router.callback_query(F.data.startswith("admin_dep:"))
-async def admin_dep(cb: CallbackQuery, state: FSMContext):
-    dep_id = int(cb.data.split(":")[1])
-    await state.update_data(dep_id=dep_id)
-
-    # Shu bo‘limdagi nomzodlar
-    candidates = await db.get_candidates(dep_id)
-    if not candidates:
-        await cb.message.answer("Bu bo‘limda nomzodlar mavjud emas.")
-        return
-
-    # Bo‘lim statistikasini olish
-    stats = await db.department_statistics(dep_id)
-    votes_dict = {name: votes for name, votes in stats}  # {nomzod_nomi: ovoz_soni}
-
-    kb_buttons = []
-    text_lines = []
-
-    for c in candidates:
-        candidate_id = c[0]
-        name = c[2]
-        votes = votes_dict.get(name, 0)
-        text_lines.append(f"👤 {name} - 🗳️ {votes} ovoz")
-        kb_buttons.append([InlineKeyboardButton(text=f"{name} ({votes} ovoz)", callback_data=f"admin_candidate:{candidate_id}")])
-
-    await cb.message.answer(
-        "Nomzod tanlang:\n\n" + "\n".join(text_lines),
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb_buttons)
-    )
+@router.callback_query(F.data.startswith("cand:delete:"))
+@admin_only
+async def cand_delete(cb: CallbackQuery):
+    cand_id = int(cb.data.split(":")[-1])
+    await db.delete_candidate(cand_id)
+    await cb.message.answer("🗑 Nomzod o‘chirildi.")
+    await cb.answer()
 
 
-
-@router.callback_query(F.data.startswith("admin_candidate:"))
-async def admin_candidate(cb: CallbackQuery, state: FSMContext):
-    candidate_id = int(cb.data.split(":")[1])
-    await state.update_data(candidate_id=candidate_id)
-
-    # 1 / 2 / 3 o‘rin tugmalari
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="1️⃣", callback_data="set_place:1"),
-                InlineKeyboardButton(text="2️⃣", callback_data="set_place:2"),
-                InlineKeyboardButton(text="3️⃣", callback_data="set_place:3")
-            ]
-        ]
-    )
-    await cb.message.answer("O‘rin tanlang:", reply_markup=kb)
-
-@router.callback_query(F.data.startswith("set_place:"))
-async def set_place(cb: CallbackQuery, state: FSMContext):
-    place = int(cb.data.split(":")[1])
-    data = await state.get_data()
-    dep_id = data.get("dep_id")
-    candidate_id = data.get("candidate_id")
-
-    if not dep_id or not candidate_id:
-        await cb.message.answer("⚠️ Xatolik yuz berdi. Iltimos, qayta urinib ko‘ring.")
-        await state.clear()
-        return
-
-    # Natijani saqlash
-    await db.add_result(dep_id, place, candidate_id=candidate_id, custom_name=None)
-
-    # Nomzod ismini olish
-    candidate = await db.get_candidate_by_id(candidate_id)
-    candidate_name = candidate[2] if candidate else "Nomzod topilmadi"
-
-    await state.clear()
-    await cb.message.answer(f"🏆 Natija saqlandi: {place}-o‘rin → {candidate_name}")
-
-
-
-
-# -------------------------
-# 2️⃣ Admin botga yuboradi (preview)
-# -------------------------
-def build_department_post(dep_id, base_caption, candidates_stats):
-    """
-    candidates_stats: [(candidate_id, name, votes), ...]
-    """
-
-    text = base_caption + "\n\n<b>🗳 NOMZODLAR:</b>\n"
-
+def build_department_post(dep_id: int, base_caption: str, candidates_stats):
+    text = f"{base_caption or ''}\n\n<b>🗳 NOMZODLAR:</b>\n"
     keyboard = []
-
-    for i, (candidate_id, name, votes) in enumerate(candidates_stats, start=1):
-        keyboard.append([
-            InlineKeyboardButton(
-                text=f"🗳 {name} ({votes})",
-                callback_data=f"vote:{candidate_id}:{dep_id}"
-            )
-        ])
-
+    for cand_id, name, votes in candidates_stats:
+        keyboard.append([InlineKeyboardButton(text=f"🗳 {name} ({votes})", callback_data=f"vote:{cand_id}:{dep_id}")])
     return text, InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-@router.callback_query(F.data.startswith("send_dep:"))
-async def send_dep_preview(cb: CallbackQuery, bot: Bot):
-    dep_id = int(cb.data.split(":")[1])
 
-    candidates = await db.get_candidates(dep_id)
-    if not candidates:
-        return await cb.message.answer("⚠️ Bu bo‘limda nomzodlar mavjud emas.")
-
-    # 1️⃣ Start page dan rasm va caption
+@router.callback_query(F.data.startswith("send:preview:"))
+@admin_only
+async def send_preview(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    dep = await db.get_department(dep_id)
+    if not dep:
+        return await cb.message.answer("❌ Bo‘lim topilmadi.")
     start_page = await db.get_start_page()
-    if not start_page:
-        return await cb.message.answer("❌ Start page topilmadi")
-
-    photo_id, base_caption = start_page
-
-    # 2️⃣ Ovozlar statistikasi
+    photo_id, base_caption = start_page if start_page else (dep[2], f"🏷 <b>{dep[1]}</b>")
     stats = await db.department_statistics(dep_id)
-    votes_map = {name: votes for name, votes in stats}
-
-    # 3️⃣ Nomzodlarni yig‘amiz
-    candidates_stats = []
-    for c in candidates:
-        candidate_id = c[0]
-        name = c[2]
-        votes = votes_map.get(name, 0)
-        candidates_stats.append((candidate_id, name, votes))
-
-    # 4️⃣ Bitta post yasaymiz
-    caption, keyboard = build_department_post(
-        dep_id=dep_id,
-        base_caption=base_caption,
-        candidates_stats=candidates_stats
-    )
-
-    # 5️⃣ Preview yuboramiz (BITTA POST)
-    await cb.message.answer_photo(
-        photo=photo_id,
-        caption=caption,
-        reply_markup=keyboard
-    )
-
-    # 6️⃣ Kanalga yuborish tugmasi
-    await cb.message.answer(
-        "Nomzodlarni kanalga yuborasizmi?",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="📢 Kanalga yuborish",
-                    callback_data=f"send_channel:{dep_id}"
-                )]
-            ]
-        )
-    )
+    caption, keyboard = build_department_post(dep_id, base_caption, stats)
+    if photo_id:
+        await cb.message.answer_photo(photo_id, caption=caption, reply_markup=keyboard)
+    else:
+        await cb.message.answer(caption, reply_markup=keyboard)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📤 Kanalga yuborish", callback_data=f"send:channel:{dep_id}")],
+        [InlineKeyboardButton(text="⬅️ Bo‘lim", callback_data=f"dep:open:{dep_id}")],
+    ])
+    await cb.message.answer("Postni kanalga yuborasizmi?", reply_markup=kb)
+    await cb.answer()
 
 
-@router.callback_query(F.data.startswith("send_channel:"))
+@router.callback_query(F.data.startswith("send:channel:"))
+@admin_only
 async def send_channel(cb: CallbackQuery, bot: Bot):
-    dep_id = int(cb.data.split(":")[1])
-
-    candidates = await db.get_candidates(dep_id)
-    if not candidates:
-        return await cb.answer("❌ Nomzodlar yo‘q", show_alert=True)
-
-    # 1️⃣ Start page (rasm + umumiy caption)
+    dep_id = int(cb.data.split(":")[-1])
+    dep = await db.get_department(dep_id)
     start_page = await db.get_start_page()
-    if not start_page:
-        return await cb.answer("❌ Start page topilmadi", show_alert=True)
-
-    photo_id, base_caption = start_page
-
-    # 2️⃣ Ovozlar statistikasi
+    photo_id, base_caption = start_page if start_page else (dep[2] if dep else None, f"🏷 <b>{dep[1] if dep else 'Ovoz berish'}</b>")
     stats = await db.department_statistics(dep_id)
-    votes_map = {name: votes for name, votes in stats}
-
-    # 3️⃣ Nomzodlarni yig‘amiz
-    candidates_stats = []
-    for c in candidates:
-        candidate_id = c[0]
-        name = c[2]
-        votes = votes_map.get(name, 0)
-        candidates_stats.append((candidate_id, name, votes))
-
-    # 4️⃣ Bitta post yasaymiz (OLDINGI FUNKSIYA)
-    caption, keyboard = build_department_post(
-        dep_id=dep_id,
-        base_caption=base_caption,
-        candidates_stats=candidates_stats
-    )
-
-    # 5️⃣ HAR BIR KANALGA BITTA POST
-    
-    chat_id = '@tatusfyoshlarittifoqi'
-
+    caption, keyboard = build_department_post(dep_id, base_caption, stats)
     try:
-        await bot.send_photo(
-            chat_id=chat_id,
-            photo=photo_id,
-            caption=caption,
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        print(f"❌ Kanalga yuborilmadi ({chat_id}):", e)
-
-    await cb.answer("✅ Nomzodlar kanalga yuborildi", show_alert=True)
-
-
-@router.callback_query(F.data.startswith("vote:"))
-async def vote_candidate(cb: CallbackQuery, bot: Bot):
-    # 1️⃣ Callback data dan idlarni olish
-    try:
-        _, candidate_id, dep_id = cb.data.split(":")
-        candidate_id = int(candidate_id)
-        dep_id = int(dep_id)
-    except Exception:
-        return await cb.answer("❌ Xatolik: noto‘g‘ri callback data", show_alert=True)
-
-    user_id = cb.from_user.id
-
-    # 2️⃣ Foydalanuvchini kutish xabari
-    # await cb.answer("⏳ Tekshirilmoqda...")
-
-    # 3️⃣ Majburiy kanallarni tekshirish
-    channels = await db.get_channels()
-    not_joined = []
-
-    for ch in channels:
-        if not await check_membership(bot, ch[3], user_id):
-            not_joined.append(ch)
-
-    if not_joined:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text=ch[2], url=ch[3])] for ch in not_joined
-            ] + [
-                [InlineKeyboardButton(
-                    text="✅ A’zo bo‘ldim",
-                    url=f"https://t.me/{(await bot.me()).username}?start=vote_{candidate_id}_{dep_id}"
-                )]
-            ]
-        )
-        return await cb.message.answer(
-            "❌ Ovoz berish uchun quyidagi kanallarga a’zo bo‘ling 👇",
-            reply_markup=kb
-        )
-
-    # 4️⃣ Ovoz berish (1 user = 1 ovoz)
-    success = await db.vote(user_id, dep_id, candidate_id)
-    if not success:
-        return await cb.answer("⚠️ Siz allaqachon ovoz bergansiz", show_alert=True)
-
-    # 5️⃣ Kandidatlarni va statistikani olish
-    candidates = await db.get_candidates(dep_id)
-    stats = await db.department_statistics(dep_id)
-    votes_map = {name: votes for name, votes in stats}
-
-    candidates_stats = [
-        (c[0], c[2], votes_map.get(c[2], 0)) for c in candidates
-    ]
-
-    # 6️⃣ Start page caption
-    start_page = await db.get_start_page()
-    if not start_page:
-        return await cb.answer("❌ Start page topilmadi", show_alert=True)
-    _, base_caption = start_page
-
-    # 7️⃣ Yangi caption va keyboard
-    new_caption, new_keyboard = build_department_post(
-        dep_id=dep_id,
-        base_caption=base_caption,
-        candidates_stats=candidates_stats
-    )
-
-    # 8️⃣ Xabarni yangilash (photo yoki text)
-    try:
-        if cb.message.photo:  # agar photo bo'lsa
-            await cb.message.edit_caption(caption=new_caption, reply_markup=new_keyboard)
-        else:  # oddiy text message bo'lsa
-            await cb.message.edit_text(text=new_caption, reply_markup=new_keyboard)
-    except Exception as e:
-        if "message is not modified" not in str(e):
-            print("EDIT ERROR:", e)
-
-    # 9️⃣ Yakuniy javob
-    await cb.answer("✅ Siz muvaffaqiyatli ovoz berdingiz!", show_alert=True)
-
-
-
-def fetch_employees():
-    all_employees = []
-
-    for i in range(1, 25):  # 22 ta sahifa bor
-        API_URL = f"https://student.samtuit.uz/rest/v1/data/employee-list?type=all&page={i}"
-        headers = {"Authorization": f"Bearer {API_TOKEN}"}
-        res = requests.get(API_URL, headers=headers).json()
-        data = res.get("data", {})
-
-        if isinstance(data, dict):
-            items = data.get("items", [])
-        elif isinstance(data, list):
-            items = data
+        if photo_id:
+            await bot.send_photo(DEFAULT_CHANNEL, photo_id, caption=caption, reply_markup=keyboard)
         else:
-            items = []
+            await bot.send_message(DEFAULT_CHANNEL, caption, reply_markup=keyboard)
+        await cb.answer("✅ Kanalga yuborildi", show_alert=True)
+    except Exception as e:
+        await cb.message.answer(f"❌ Kanalga yuborishda xatolik: {e}")
+        await cb.answer()
 
-        all_employees.extend(items)
-    return all_employees
 
-def get_daily_average_weatherapi(city="Samarqand"):
-    url = "http://api.weatherapi.com/v1/forecast.json"
-    params = {
-        "key": WEATHER_API_KEY_ONE,
-        "q": city,
-        "days": 1,
-        "aqi": "no",
-        "alerts": "no"
-    }
-    resp = requests.get(url, params=params, timeout=10).json()
+@router.callback_query(F.data == "admin:stats")
+@admin_only
+async def admin_stats(cb: CallbackQuery):
+    deps = await db.get_departments(True)
+    if not deps:
+        await cb.message.answer("📭 Bo‘limlar mavjud emas.")
+    for dep_id, name, _photo, is_active in deps:
+        stats = await db.department_statistics(dep_id)
+        total = await db.count_all_votes(dep_id)
+        text = f"📊 <b>{name}</b> — jami {total} ovoz\n"
+        for _cid, cand_name, votes in stats:
+            text += f"• {cand_name}: {votes}\n"
+        await cb.message.answer(text)
+    await cb.answer()
 
-    location = resp["location"]["name"]
-    country = resp["location"]["country"]
-    forecast = resp["forecast"]["forecastday"][0]["day"]
 
-    avg_temp = forecast["avgtemp_c"]
-    max_temp = forecast["maxtemp_c"]
-    min_temp = forecast["mintemp_c"]
-    condition = forecast["condition"]["text"]
-    humidity = forecast["avghumidity"]
+@router.callback_query(F.data.startswith("stat:dep:"))
+@admin_only
+async def stat_dep(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    dep = await db.get_department(dep_id)
+    stats = await db.department_statistics(dep_id)
+    total = await db.count_all_votes(dep_id)
+    text = f"📊 <b>{dep[1] if dep else 'Bo‘lim'}</b>\nJami ovoz: <b>{total}</b>\n\n"
+    for _cid, name, votes in stats:
+        percent = round((votes / total) * 100, 1) if total else 0
+        text += f"👤 {name}: <b>{votes}</b> ovoz — {percent}%\n"
+    await cb.message.answer(text or "Statistika yo‘q.")
+    await cb.answer()
 
-    # Inglizcha → O‘zbekcha tarjima
-    condition_translations = {
-        "Sunny": "Quyoshli",
-        "Clear": "Ochiq osmon",
-        "Partly cloudy": "Qisman bulutli",
-        "Cloudy": "Bulutli",
-        "Overcast": "Qorong‘u osmon",
-        "Mist": "Tumanli",
-        "Fog": "Tuman",
-        "Rain": "Yomg‘ir",
-        "Light rain": "Yengil yomg‘ir",
-        "Moderate rain": "O‘rtacha yomg‘ir",
-        "Heavy rain": "Kuchli yomg‘ir",
-        "Snow": "Qor",
-        "Light snow": "Yengil qor",
-        "Heavy snow": "Kuchli qor",
-        "Thunderstorm": "Momaqaldiroq",
-        "Drizzle": "Mayda yomg‘ir"
-    }
 
-    condition_uz = condition_translations.get(condition, condition)
+@router.callback_query(F.data == "admin:results")
+@admin_only
+async def admin_results(cb: CallbackQuery):
+    deps = await db.get_departments(True)
+    rows = [[InlineKeyboardButton(text=d[1], callback_data=f"result:dep:{d[0]}")] for d in deps]
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data="admin:back")])
+    await cb.message.answer("🏆 Natija kiritish uchun bo‘lim tanlang:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await cb.answer()
 
-    # Ob-havo rasmlari mapping
-    weather_images = {
-        "Sunny": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
-        "Clear": "https://storage.kun.uz/source/4/DPWlLu11G2SPAPOSmw9FCWO687nVy6NL.jpg",
-        "Partly cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-        "Cloudy": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-        "Overcast": "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg",
-        "Rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-        "Light rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-        "Moderate rain": "https://i.ytimg.com/vi/7brJCPOkfuQ/maxresdefault.jpg",
-        "Snow": "https://pic.rutubelist.ru/video/2024-12-21/64/41/6441c162f6f67d0bb3a69ab136527cc0.jpg",
-        "Thunderstorm": "https://www.wwlp.com/wp-content/uploads/sites/26/2025/06/Getty-Thunderstorm.jpg?w=1280",
-    }
 
-    # Agar condition mappingda bo‘lmasa → default rasm
-    image_url = weather_images.get(condition, "https://files.modern.az/articles/2025/03/30/1743323387_ebd5d6e7-475f-3fd9-9260-783bf53486ea_850.jpg")
+@router.callback_query(F.data.startswith("result:dep:"))
+@admin_only
+async def result_dep(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    stats = await db.department_statistics(dep_id)
+    rows = []
+    for cand_id, name, votes in stats:
+        rows.append([InlineKeyboardButton(text=f"{name} ({votes})", callback_data=f"result:cand:{dep_id}:{cand_id}")])
+    rows.append([InlineKeyboardButton(text="✍️ Qo‘lda nom kiritish", callback_data=f"result:custom:{dep_id}")])
+    rows.append([InlineKeyboardButton(text="👁 Natijalarni ko‘rish", callback_data=f"result:view:{dep_id}")])
+    await cb.message.answer("Natija uchun nomzod tanlang:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await cb.answer()
 
-    # Chiroyli caption (uzbekcha holat bilan)
-    caption = (
-        "<b>OB➖HOVO</b>\n\n"
-        "🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n"
-        f"📍 <b>{location}, {country}</b>\n"
-        f"📅 <i>{datetime.now().strftime('%d-%m-%Y')}</i>\n\n"
-        f"🌡️ <b>O'rtacha: {avg_temp}°C</b>\n"
-        f"⬆️ Maks: {max_temp}°C   ⬇️ Min: {min_temp}°C\n"
-        f"☁️ Holat: <b>{condition_uz}</b>\n"
-        f"💧 Namlik: {humidity}%\n\n"
-        "Bizni kuzating👇\n"
-        "<a href='https://fb.com/sbtuit'>Facebook</a> | "
-        "<a href='https://t.me/sbtuit2005'>Telegram</a> | "
-        "<a href='https://instagram.com/sbtuit2005'>Instagram</a> | "
-        "<a href='https://bit.ly/2yw9MS9'>YouTube</a>\n"
-    )
 
-    return caption, image_url
+@router.callback_query(F.data.startswith("result:cand:"))
+@admin_only
+async def result_cand(cb: CallbackQuery):
+    _, _, dep_id, cand_id = cb.data.split(":")
+    rows = [[InlineKeyboardButton(text=f"{i}-o‘rin", callback_data=f"result:place:{dep_id}:{cand_id}:{i}")] for i in range(1, 4)]
+    await cb.message.answer("O‘rinni tanlang:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await cb.answer()
 
-# 🎂 Tug‘ilgan kunlarni tekshirish (bugun va ertaga)
-def get_birthdays():
-    employees = fetch_employees()
-    today = datetime.now().strftime("%m-%d")
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%m-%d")
 
-    birthdays_today, birthdays_tomorrow = [], []
+@router.callback_query(F.data.startswith("result:place:"))
+@admin_only
+async def result_place(cb: CallbackQuery):
+    _, _, dep_id, cand_id, place = cb.data.split(":")
+    await db.add_result(int(dep_id), int(place), candidate_id=int(cand_id))
+    await cb.message.answer(f"✅ {place}-o‘rin saqlandi.")
+    await cb.answer()
 
-    for emp in employees:
-        try:
-            # Tug‘ilgan sanani timestampdan datetime ga aylantiramiz
-            timestamp = emp["birth_date"]
-            if timestamp > 1e12:
-                timestamp = timestamp/1000
 
-            birth_date = datetime.fromtimestamp(timestamp)
-            birth_md = birth_date.strftime("%m-%d")  # faqat oy-kun
+@router.callback_query(F.data.startswith("result:custom:"))
+@admin_only
+async def result_custom_start(cb: CallbackQuery, state: FSMContext):
+    dep_id = int(cb.data.split(":")[-1])
+    await state.update_data(dep_id=dep_id)
+    await state.set_state(ResultFSM.custom_name)
+    await cb.message.answer("Natija uchun nomni qo‘lda kiriting. Format: <code>1; Ali Valiyev</code>")
+    await cb.answer()
 
-            info = {
-                    "full_name": emp["full_name"],
-                    "department": emp["department"]["name"] if emp.get("department") else "",
-                    "kafedra": emp["structureType"]["name"] if emp.get("kafedra") else "",
-                    "birth_date": birth_date.strftime("%Y-%m-%d"),  # to‘liq sana
-                    "image": emp.get("image")
-            }
 
-            if birth_md == today:
-                birthdays_today.append(info)
-            elif birth_md == tomorrow:
-                birthdays_tomorrow.append(info)
+@router.message(ResultFSM.custom_name)
+@admin_only
+async def result_custom_save(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    try:
+        place_raw, name = msg.text.split(";", 1)
+        place = int(place_raw.strip())
+        await db.add_result(data["dep_id"], place, candidate_id=None, custom_name=name.strip())
+        await state.clear()
+        await msg.answer("✅ Qo‘lda natija saqlandi.")
+    except Exception:
+        await msg.answer("❌ Format noto‘g‘ri. Masalan: <code>1; Ali Valiyev</code>")
 
-        except Exception as e:
-            pass
 
-    return birthdays_today, birthdays_tomorrow
+@router.callback_query(F.data.startswith("result:view:"))
+@admin_only
+async def result_view(cb: CallbackQuery):
+    dep_id = int(cb.data.split(":")[-1])
+    results = await db.get_results(dep_id)
+    if not results:
+        await cb.message.answer("📭 Natijalar mavjud emas.")
+    else:
+        text = "🏆 <b>Natijalar</b>\n\n"
+        for result_id, _dep, place, _cand_id, custom_name, cand_name in results:
+            name = cand_name or custom_name or "—"
+            text += f"{place}-o‘rin: <b>{name}</b> /del_result_{result_id}\n"
+        await cb.message.answer(text)
+    await cb.answer()
 
-# 📤 Adminni tug‘ilgan kunlar bilan ogohlantirish
-async def send_birthday_notifications():
-    birthdays_today, birthdays_tomorrow = get_birthdays()
-    
-    if birthdays_today:
-        for emp in birthdays_today:
-            full_name = emp["full_name"]
-            department = emp["department"]
-            kafedra = emp["kafedra"]
 
-            caption = f"""
-            Bugun"{department}" {kafedra} xodimi <i>{full_name}</i>ning tavallud ayyomi.\n\n <i>Hurmatli {full_name}</i>\nSizga filial jamoasi nomidan sihat-salomatlik, oilaviy xotirjamlik, ishlaringizda ulkan muvaffaqiyatlar tilab qolamiz!\n\n🌐 <b>TATU Samarqand filiali axborot xizmati</b>\n\n\nBizni kuzating👇🏼\n <a href="https://fb.com/sbtuit">Facebook</a> | <a href="https://t.me/sbtuit2005">Telegram</a> | <a href="https://instagram.com/sbtuit2005">Instagram</a> | <a href="https://bit.ly/2yw9MS9">YouTube</a>"""
+@router.message(F.text.startswith("/del_result_"))
+@admin_only
+async def delete_result_cmd(msg: Message):
+    try:
+        result_id = int(msg.text.replace("/del_result_", ""))
+        await db.delete_result(result_id)
+        await msg.answer("🗑 Natija o‘chirildi.")
+    except Exception:
+        await msg.answer("❌ Natija ID noto‘g‘ri.")
 
-            if emp.get("image"):
-                await bot.send_photo(
-                    chat_id=ADMIN_ID,
-                    photo=emp["image"],  # URL bo‘lsa to‘g‘ridan-to‘g‘ri
-                    caption=caption,
-                    parse_mode="HTML"
-                )
-            else:
-                await bot.send_message(
-                    chat_id=ADMIN_ID,
-                    text=caption,
-                    parse_mode="HTML"
-                )
 
-    if birthdays_tomorrow:
-        msg = "📌 <b>Ertaga tug‘ilgan kunlar:</b>\n\n"
-        for emp in birthdays_tomorrow:
-            msg += f"👤 {emp['full_name']}\n🏢 {emp['department']}\n\n"
-        await bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="HTML")
-
-    if not birthdays_today and not birthdays_tomorrow:
-        await bot.send_message(
-            chat_id=ADMIN_ID,
-            text="❌ Bugun va ertaga tug‘ilgan kun yo‘q.",
-            parse_mode="HTML"
-        )
-
-async def obhavo_command_telegram():
-    caption, image_url = get_daily_average_weatherapi("Samarqand")
-    await bot.send_photo(
-        chat_id=ADMIN_ID,
-        photo=image_url,   # ob-havoga mos rasm
-        caption=caption,
-        parse_mode="HTML"
-    )
-
-@router.message(F.text == "/obhavo_api")
-async def obhavo_command(message: types.Message):
-    if not is_admin(message.from_user.id):
-        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-        return
-    caption, image_url = get_daily_average_weatherapi("Samarqand")
-    await bot.send_photo(
-        chat_id=ADMIN_ID,
-        photo=image_url,   # ob-havoga mos rasm
-        caption=caption,
-        parse_mode="HTML"
-    )
-
-# === /test komandasi ===
-@router.message(F.text == "/test")
-async def test_command(message: types.Message):
-    if not is_admin(message.from_user.id):
-        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-        return
-    if str(message.from_user.id) != str(ADMIN_ID):
-        return await message.answer("⛔ Bu buyruq faqat admin uchun!")
-
-    await message.answer("⏳ Test boshlanmoqda...")
-    await send_birthday_notifications()
-    await message.answer("✅ Test tugadi.")
-
-# Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
-    dp.include_router(router)  # Routerni Dispatcherga qo'shish
+    dp.include_router(router)
