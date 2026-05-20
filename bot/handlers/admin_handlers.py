@@ -802,7 +802,7 @@ async def vote_candidate(cb: CallbackQuery, bot: Bot):
 def fetch_employees():
     all_employees = []
 
-    for i in range(1, 23):  # 22 ta sahifa bor
+    for i in range(1, 25):  # 22 ta sahifa bor
         API_URL = f"https://student.samtuit.uz/rest/v1/data/employee-list?type=all&page={i}"
         headers = {"Authorization": f"Bearer {API_TOKEN}"}
         res = requests.get(API_URL, headers=headers).json()
